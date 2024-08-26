@@ -17,12 +17,15 @@
         }
     ],
     "type": "number",
-    "decimals": 0,
+    "uiComponent": "slider",
     "units": {
         "en": "%"
     },
+    "min": 0,
+    "max": 100,
+    "step": 1,
     "getable": true,
-    "setable": false,
+    "setable": true,
     "greyout": true,
     "icon": "/assets/icons/speedometer.svg",
     "insights": true

@@ -1,0 +1,27 @@
+{
+    "id": "set_supply_power",
+    "title": {
+        "en": "Set supply fan power"
+    },
+    "titleFormatted": {
+        "en": "Set supply fan power to [[power]]"
+    },
+    "highlight": true,
+    "args": [
+        {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote|iqc-touch"
+        },
+        {
+            "name": "power",
+            "type": "number",
+            "title": { "en": "Supply power" },
+            "placeholder": { "en": "In percentage" },
+            "required": true,
+            "min": 0,
+            "max": 100,
+            "step": 1
+        }
+    ]
+}

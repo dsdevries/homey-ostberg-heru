@@ -22,6 +22,12 @@ class IQCTouch extends BaseDevice {
         this.registerCapabilityListener('target_temperature.eco', async (value) => {
             this.setTargetTemperature(value, true);
         });
+        this.registerCapabilityListener('slider_supply_power', async (value) => {
+            this.setSupplyPower(value);
+        });
+        this.registerCapabilityListener('slider_extract_power', async (value) => {
+            this.setExtractPower(value);
+        });
         this.registerCapabilityListener('heater_enabled_iqc', async (value) => {
             this.setHeaterEnabled(value);
         });
@@ -38,6 +44,14 @@ class IQCTouch extends BaseDevice {
     async setTargetTemperature(target: number, eco: boolean) {
         if (eco) this.api?.writeRegister(IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE_ECONOMY, target);
         else this.api?.writeRegister(IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE, target);
+    }
+
+    async setSupplyPower(power: number) {
+        this.api?.writeRegister(IQCRegisters.holdingRegisters.SUPPLY_FAN_SPEED, power);
+    }
+
+    async setExtractPower(power: number) {
+        this.api?.writeRegister(IQCRegisters.holdingRegisters.EXHAUST_FAN_SPEED, power);
     }
 
     async setHeaterEnabled(value: boolean) {

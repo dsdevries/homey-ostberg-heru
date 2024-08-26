@@ -52,11 +52,3 @@ export enum FanSpeedGen3 {
     MOD,
     MAX
 }
-
-export enum SetFanSpeedGen3 {
-    OFF= 'off',
-    MIN = 'minimum',
-    STD = 'standard',
-    MOD= 'medium',
-    MAX = 'maximum'
-}

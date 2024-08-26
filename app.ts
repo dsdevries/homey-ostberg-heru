@@ -14,6 +14,8 @@ class OstbergHeru extends Homey.App {
 
         // ########## Actions ##########
         this.homey.flow.getActionCard('set_fan_mode').registerRunListener((args, _state) => args.device.setFanMode(args.mode));
+        this.homey.flow.getActionCard('set_supply_power').registerRunListener((args, _state) => args.device.setSupplyPower(args.power));
+        this.homey.flow.getActionCard('set_supply_power').registerRunListener((args, _state) => args.device.setExtractPower(args.power));
         this.homey.flow.getActionCard('list_active_alarms').registerRunListener(async (args, _state) => args.device.listActiveAlarms()); // Advanced flow only
         // TODO: This seems to not work on my Gen 3 system. Investigate later. Removed .homeycompose flow actions
         // this.homey.flow.getActionCard('reset_alarms').registerRunListener((args, _state) => args.device.resetAlarms());

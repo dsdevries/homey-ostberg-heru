@@ -1,0 +1,22 @@
+{
+    "id": "supply_power_changed",
+    "title": {
+        "en": "Supply fan power changed"
+    },
+    "highlight": true,
+    "tokens": [
+        {
+            "name": "power",
+            "type": "number",
+            "title": { "en": "Power" },
+            "example": "Standard"
+        }
+    ],
+    "args": [
+        {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote|iqc-touch"
+        }
+    ]
+}

@@ -5,9 +5,17 @@ import { alarms as Gen3Alarms } from './constants';
 class Gen3RemoteDriver extends Homey.Driver {
     async onInit() {
         this.homey.flow.getActionCard('set_regulation_mode_gen3').registerRunListener((args, _state) => args.device.setRegulationMode(args.mode));
+
+        this.homey.flow.getActionCard('set_supply_power').registerRunListener((args, _state) => {
+            args.device.setSupplyPower(args.power);
+            args.device.triggerSupplyPowerChanged(args.power)
+        });
+        this.homey.flow.getActionCard('set_extract_power').registerRunListener((args, _state) => {
+            args.device.setExtractPower(args.power);
+            args.device.triggerExtractPowerChanged(args.power)
+        });
+
         this.homey.flow.getConditionCard('is_regulation_mode_gen3').registerRunListener((args, _state) => args.device.isRegulationMode(args.mode));
-        this.homey.flow.getActionCard('set_fan_speed_gen3').registerRunListener((args, _state) => args.device.setFanSpeed(args.mode));
-        this.homey.flow.getConditionCard('is_fan_speed_gen3').registerRunListener((args, _state) => args.device.isFanSpeed(args.mode));
         this.homey.flow
             .getDeviceTriggerCard('specific_alarm_reset')
             .registerRunListener(async (args, state) => args.alarm.id === state.id)

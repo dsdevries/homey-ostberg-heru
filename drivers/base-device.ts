@@ -24,6 +24,9 @@ abstract class BaseDevice extends Homey.Device {
         this.addOrRemoveCapabilities().catch(this.error);
     }
 
+    abstract setSupplyPower(power: number): void;
+    abstract setExtractPower(power: number): void;
+
     async isFanMode(value: FanMode) {
         return this.getCapabilityValue('fan_mode') === value;
     }
@@ -70,6 +73,14 @@ abstract class BaseDevice extends Homey.Device {
         this.homey.flow.getDeviceTriggerCard('fan_mode_changed').trigger(this, { mode: value.charAt(0).toUpperCase() + value.slice(1) });
     }
 
+    triggerSupplyPowerChanged(power: number) {
+        this.homey.flow.getDeviceTriggerCard('supply_power_changed').trigger(this, { power: power});
+    }
+
+    triggerExtractPowerChanged(power: number) {
+        this.homey.flow.getDeviceTriggerCard('extract_power_changed').trigger(this, { power: power});
+    }
+
     async processFanMode(off: boolean, overpressure: boolean, boost: boolean, away: boolean) {
         const previousFanMode = this.getCapabilityValue('fan_mode');
         if (off) {
@@ -86,7 +97,6 @@ abstract class BaseDevice extends Homey.Device {
         const newFanMode = this.getCapabilityValue('fan_mode');
         if (previousFanMode !== newFanMode) this.triggerFanModeChanged(newFanMode);
     }
-
     isSpecificAlarmActive(alarm: string) {
         const currentAlarms = this.getStoreValue('alarms');
         return !!currentAlarms[alarm];
@@ -152,7 +162,7 @@ abstract class BaseDevice extends Homey.Device {
             this.processAlarms(results.discreteInputs);
         }
 
-        if (results)
+        if (results) {
             if (results.inputRegisters.length) {
                 // Inputs Registers
                 this.setCapabilityValue('meter_temperature_outdoor_air', this.removeDecimal(results.inputRegisters[BaseRegisters.inputRegisters.OUTDOOR_TEMPERATURE])).catch(this.error);
@@ -171,10 +181,20 @@ abstract class BaseDevice extends Homey.Device {
                     this.setCapabilityValue('meter_pressure_supply', this.checkNegativeNumber(results.inputRegisters[BaseRegisters.inputRegisters.SUPPLY_PRESSURE])).catch(this.error); // TODO: Check conversion. x0.1Pa
                 if (this.hasCapability('meter_pressure_extract'))
                     this.setCapabilityValue('meter_pressure_extract', this.checkNegativeNumber(results.inputRegisters[BaseRegisters.inputRegisters.EXHAUST_PRESSURE])).catch(this.error); // TODO: Check conversion. x0.1Pa
-                if (this.hasCapability('meter_power_supply'))
-                    this.setCapabilityValue('meter_power_supply', this.checkNegativeNumber(results.inputRegisters[BaseRegisters.inputRegisters.SUPPLY_FAN_POWER])).catch(this.error);
-                if (this.hasCapability('meter_power_extract'))
-                    this.setCapabilityValue('meter_power_extract', this.checkNegativeNumber(results.inputRegisters[BaseRegisters.inputRegisters.EXHAUST_FAN_POWER])).catch(this.error);
+                if (this.hasCapability('slider_power_supply')) {
+                    const previousSupplyPower = this.getCapabilityValue('slider_power_supply');
+                    const newSupplyPower = results.inputRegisters[BaseRegisters.inputRegisters.SUPPLY_FAN_POWER]
+                    this.setCapabilityValue('slider_power_supply', this.checkNegativeNumber(newSupplyPower)).catch(this.error);
+
+                    if (previousSupplyPower !== newSupplyPower) this.triggerSupplyPowerChanged(newSupplyPower);
+                }
+                if (this.hasCapability('slider_power_extract')) {
+                    const previousExtractPower = this.getCapabilityValue('slider_power_extract');
+                    const newExtractPower = results.inputRegisters[BaseRegisters.inputRegisters.EXHAUST_FAN_POWER]
+                    this.setCapabilityValue('slider_power_extract', this.checkNegativeNumber(newExtractPower)).catch(this.error);
+
+                    if (previousExtractPower !== newExtractPower) this.triggerExtractPowerChanged(newExtractPower);
+                }
                 if (this.hasCapability('meter_rpm_supply'))
                     this.setCapabilityValue('meter_rpm_supply', this.checkNegativeNumber(results.inputRegisters[BaseRegisters.inputRegisters.SUPPLY_FAN_SPEED])).catch(this.error);
                 if (this.hasCapability('meter_rpm_extract'))
@@ -184,6 +204,7 @@ abstract class BaseDevice extends Homey.Device {
                 if (this.hasCapability('meter_filter_timer'))
                     this.setCapabilityValue('meter_filter_timer', this.checkNegativeNumber(results.inputRegisters[BaseRegisters.inputRegisters.FILTER_DAYS_LEFT])).catch(this.error);
             }
+        }
         // Holding registers
         if (results.holdingRegisters.length) {
             this.processRegulationMode(results.holdingRegisters[BaseRegisters.holdingRegisters.REGULATION_MODE], results.holdingRegisters[BaseRegisters.holdingRegisters.SETPOINT_TEMPERATURE]);

@@ -1,0 +1,27 @@
+{
+    "id": "set_extract_power",
+    "title": {
+        "en": "Set extract fan power"
+    },
+    "titleFormatted": {
+        "en": "Set extract fan power to [[power]]"
+    },
+    "highlight": true,
+    "args": [
+        {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote|iqc-touch"
+        },
+        {
+            "name": "power",
+            "type": "number",
+            "title": { "en": "Extract power" },
+            "placeholder": { "en": "In percentage" },
+            "required": true,
+            "min": 0,
+            "max": 100,
+            "step": 1
+        }
+    ]
+}

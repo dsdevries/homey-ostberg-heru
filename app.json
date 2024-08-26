@@ -114,6 +114,30 @@
         ]
       },
       {
+        "id": "extract_power_changed",
+        "title": {
+          "en": "Extract fan power changed"
+        },
+        "highlight": true,
+        "tokens": [
+          {
+            "name": "power",
+            "type": "number",
+            "title": {
+              "en": "Power"
+            },
+            "example": "Standard"
+          }
+        ],
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote|iqc-touch"
+          }
+        ]
+      },
+      {
         "id": "fan_mode_changed",
         "title": {
           "en": "Fan mode changed"
@@ -252,6 +276,30 @@
             "title": "Alarm",
             "example": "Fire alarm",
             "type": "string"
+          }
+        ]
+      },
+      {
+        "id": "supply_power_changed",
+        "title": {
+          "en": "Supply fan power changed"
+        },
+        "highlight": true,
+        "tokens": [
+          {
+            "name": "power",
+            "type": "number",
+            "title": {
+              "en": "Power"
+            },
+            "example": "Standard"
+          }
+        ],
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote|iqc-touch"
           }
         ]
       }
@@ -603,6 +651,37 @@
         ]
       },
       {
+        "id": "set_extract_power",
+        "title": {
+          "en": "Set extract fan power"
+        },
+        "titleFormatted": {
+          "en": "Set extract fan power to [[power]]"
+        },
+        "highlight": true,
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote|iqc-touch"
+          },
+          {
+            "name": "power",
+            "type": "number",
+            "title": {
+              "en": "Extract power"
+            },
+            "placeholder": {
+              "en": "In percentage"
+            },
+            "required": true,
+            "min": 0,
+            "max": 100,
+            "step": 1
+          }
+        ]
+      },
+      {
         "id": "set_fan_mode",
         "title": {
           "en": "Set fan mode"
@@ -842,6 +921,37 @@
             ]
           }
         ]
+      },
+      {
+        "id": "set_supply_power",
+        "title": {
+          "en": "Set supply fan power"
+        },
+        "titleFormatted": {
+          "en": "Set supply fan power to [[power]]"
+        },
+        "highlight": true,
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote|iqc-touch"
+          },
+          {
+            "name": "power",
+            "type": "number",
+            "title": {
+              "en": "Supply power"
+            },
+            "placeholder": {
+              "en": "In percentage"
+            },
+            "required": true,
+            "min": 0,
+            "max": 100,
+            "step": 1
+          }
+        ]
       }
     ]
   },
@@ -879,8 +989,8 @@
         "meter_humidity_relative",
         "meter_rpm_supply",
         "meter_rpm_extract",
-        "meter_power_supply",
-        "meter_power_extract",
+        "slider_power_supply",
+        "slider_power_extract",
         "meter_pressure_supply",
         "meter_pressure_extract",
         "meter_power_heating",
@@ -1202,8 +1312,8 @@
         "meter_humidity_relative",
         "meter_rpm_supply",
         "meter_rpm_extract",
-        "meter_power_supply",
-        "meter_power_extract",
+        "slider_power_supply",
+        "slider_power_extract",
         "meter_pressure_supply",
         "meter_pressure_extract",
         "meter_power_heating",
@@ -1659,35 +1769,6 @@
       "greyout": true,
       "insights": true
     },
-    "meter_power_extract": {
-      "title": {
-        "en": "Extract fan power"
-      },
-      "desc": {
-        "en": "Extract fan power"
-      },
-      "tokens": [
-        {
-          "name": "value",
-          "title": {
-            "en": "%"
-          },
-          "example": {
-            "en": 50
-          }
-        }
-      ],
-      "type": "number",
-      "decimals": 0,
-      "units": {
-        "en": "%"
-      },
-      "getable": true,
-      "setable": false,
-      "greyout": true,
-      "icon": "/assets/icons/speedometer.svg",
-      "insights": true
-    },
     "meter_power_heating": {
       "title": {
         "en": "Heating power"
@@ -1715,35 +1796,6 @@
       "setable": false,
       "greyout": true,
       "icon": "/assets/icons/heating.svg",
-      "insights": true
-    },
-    "meter_power_supply": {
-      "title": {
-        "en": "Supply fan power"
-      },
-      "desc": {
-        "en": "Supply fan power"
-      },
-      "tokens": [
-        {
-          "name": "value",
-          "title": {
-            "en": "%"
-          },
-          "example": {
-            "en": 50
-          }
-        }
-      ],
-      "type": "number",
-      "decimals": 0,
-      "units": {
-        "en": "%"
-      },
-      "getable": true,
-      "setable": false,
-      "greyout": true,
-      "icon": "/assets/icons/speedometer.svg",
       "insights": true
     },
     "meter_pressure_extract": {
@@ -2156,6 +2208,70 @@
       ],
       "getable": true,
       "setable": true
+    },
+    "slider_power_extract": {
+      "title": {
+        "en": "Extract fan power"
+      },
+      "desc": {
+        "en": "Extract fan power"
+      },
+      "tokens": [
+        {
+          "name": "value",
+          "title": {
+            "en": "%"
+          },
+          "example": {
+            "en": 50
+          }
+        }
+      ],
+      "type": "number",
+      "uiComponent": "slider",
+      "units": {
+        "en": "%"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "getable": true,
+      "setable": true,
+      "greyout": true,
+      "icon": "/assets/icons/speedometer.svg",
+      "insights": true
+    },
+    "slider_power_supply": {
+      "title": {
+        "en": "Supply fan power"
+      },
+      "desc": {
+        "en": "Supply fan power"
+      },
+      "tokens": [
+        {
+          "name": "value",
+          "title": {
+            "en": "%"
+          },
+          "example": {
+            "en": 50
+          }
+        }
+      ],
+      "type": "number",
+      "uiComponent": "slider",
+      "units": {
+        "en": "%"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "getable": true,
+      "setable": true,
+      "greyout": true,
+      "icon": "/assets/icons/speedometer.svg",
+      "insights": true
     }
   }
 }

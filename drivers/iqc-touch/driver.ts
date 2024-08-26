@@ -5,6 +5,15 @@ import { alarms as IQCAlarms } from './constants';
 class IQCTouchDriver extends Homey.Driver {
     async onInit() {
         this.homey.flow.getActionCard('set_regulation_mode_iqc').registerRunListener((args, _state) => args.device.setRegulationMode(args.mode));
+        this.homey.flow.getActionCard('set_supply_power').registerRunListener((args, _state) => {
+            args.device.setSupplyPower(args.power);
+            args.device.triggerSupplyPowerChanged(args.power)
+        });
+        this.homey.flow.getActionCard('set_extract_power').registerRunListener((args, _state) => {
+            args.device.setExtractPower(args.power);
+            args.device.triggerExtractPowerChanged(args.power)
+        });
+
         this.homey.flow.getActionCard('set_heater_enabled_iqc').registerRunListener((args, _state) => args.device.setHeaterEnabled(args.state === '1' ? true : false));
         this.homey.flow.getActionCard('set_preheater_enabled_iqc').registerRunListener((args, _state) => args.device.setPreheaterEnabled(args.state === '1' ? true : false));
         this.homey.flow.getConditionCard('is_regulation_mode_iqc').registerRunListener((args, _state) => args.device.isRegulationMode(args.mode));
