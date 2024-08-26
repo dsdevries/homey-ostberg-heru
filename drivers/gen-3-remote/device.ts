@@ -17,11 +17,11 @@ export class Gen3Remote extends BaseDevice {
             this.setTargetTemperature(value);
         });
 
-        this.registerCapabilityListener('slider_supply_power', async (value: number) => {
+        this.registerCapabilityListener('slider_power_supply', async (value: number) => {
             this.setSupplyPower(value);
         });
 
-        this.registerCapabilityListener('slider_extract_power', async (value: number) => {
+        this.registerCapabilityListener('slider_power_extract', async (value: number) => {
             this.setSupplyPower(value);
         });
     }

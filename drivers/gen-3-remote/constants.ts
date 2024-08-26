@@ -44,11 +44,3 @@ export enum RegulationModeGen3 {
     EXTRACT,
     ROOM
 }
-
-export enum FanSpeedGen3 {
-    OFF,
-    MIN,
-    STD,
-    MOD,
-    MAX
-}

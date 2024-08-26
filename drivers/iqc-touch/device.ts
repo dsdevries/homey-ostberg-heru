@@ -22,10 +22,10 @@ class IQCTouch extends BaseDevice {
         this.registerCapabilityListener('target_temperature.eco', async (value) => {
             this.setTargetTemperature(value, true);
         });
-        this.registerCapabilityListener('slider_supply_power', async (value) => {
+        this.registerCapabilityListener('slider_power_supply', async (value) => {
             this.setSupplyPower(value);
         });
-        this.registerCapabilityListener('slider_extract_power', async (value) => {
+        this.registerCapabilityListener('slider_power_extract', async (value) => {
             this.setExtractPower(value);
         });
         this.registerCapabilityListener('heater_enabled_iqc', async (value) => {
