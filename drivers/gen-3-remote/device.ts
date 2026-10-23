@@ -100,7 +100,7 @@ export class Gen3Remote extends BaseDevice {
                 mode = 'Room';
                 break;
         }
-        this.homey.flow.getDeviceTriggerCard('regulation_mode_changed_gen3').trigger(this, { mode });
+        this.homey.flow.getDeviceTriggerCard('regulation_mode_changed_gen3').trigger(this, { mode }).catch(this.error);
     }
 
     isRegulationMode(value: SetRegulationModeGen3) {
@@ -238,7 +238,7 @@ export class Gen3Remote extends BaseDevice {
         if (results.inputRegisters.length) {
             if (this.hasCapability('measure_co2')) {
                 this.setCapabilityValue('measure_co2', results.inputRegisters[Gen3Registers.inputRegisters.CARBON_DIOXIDE]).catch(this.error);
-                this.setCapabilityValue('week_timer_current_active_program_gen3', results.inputRegisters[Gen3Registers.inputRegisters.WEEK_TIMER_CURRENT_ACTIVE_PROGRAM].toString(10));
+                this.setCapabilityValue('week_timer_current_active_program_gen3', results.inputRegisters[Gen3Registers.inputRegisters.WEEK_TIMER_CURRENT_ACTIVE_PROGRAM].toString(10)).catch(this.error);
             }
         }
 
@@ -267,11 +267,13 @@ export class Gen3Remote extends BaseDevice {
                 return Object.assign(acc, current);
             }, {})
 
-            this.setSettings(programSettings);
+            const currentSettings = this.getSettings();
+            const programSettingsChanged = Object.keys(programSettings).some((k) => currentSettings[k] !== programSettings[k]);
+            if (programSettingsChanged) this.setSettings(programSettings).catch(this.error);
 
-            this.setCapabilityValue('heater_enabled_gen3', !!results.holdingRegisters[Gen3Registers.holdingRegisters.HEATER_ENABLED]);
-            this.setCapabilityValue('summer_night_cooling_enabled', !!results.holdingRegisters[Gen3Registers.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED]);
-            this.setCapabilityValue('week_timer_enabled_gen3', !!results.holdingRegisters[Gen3Registers.holdingRegisters.WEEK_TIMER_ENABLED]);
+            this.setCapabilityValue('heater_enabled_gen3', !!results.holdingRegisters[Gen3Registers.holdingRegisters.HEATER_ENABLED]).catch(this.error);
+            this.setCapabilityValue('summer_night_cooling_enabled', !!results.holdingRegisters[Gen3Registers.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED]).catch(this.error);
+            this.setCapabilityValue('week_timer_enabled_gen3', !!results.holdingRegisters[Gen3Registers.holdingRegisters.WEEK_TIMER_ENABLED]).catch(this.error);
 
         }
 

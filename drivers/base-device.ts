@@ -67,7 +67,7 @@ abstract class BaseDevice extends Homey.Device {
     abstract processRegulationMode(regulationMode: RegulationModeGen3 | RegulationModeIQC, targetTemperature: number): void;
 
     triggerFanModeChanged(value: FanMode) {
-        this.homey.flow.getDeviceTriggerCard('fan_mode_changed').trigger(this, { mode: value.charAt(0).toUpperCase() + value.slice(1) });
+        this.homey.flow.getDeviceTriggerCard('fan_mode_changed').trigger(this, { mode: value.charAt(0).toUpperCase() + value.slice(1) }).catch(this.error);
     }
 
     async processFanMode(off: boolean, overpressure: boolean, boost: boolean, away: boolean) {

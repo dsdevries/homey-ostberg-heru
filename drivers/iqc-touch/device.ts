@@ -85,7 +85,7 @@ class IQCTouch extends BaseDevice {
                 mode = 'Extract S/W';
                 break;
         }
-        this.homey.flow.getDeviceTriggerCard('regulation_mode_changed_iqc').trigger(this, { mode });
+        this.homey.flow.getDeviceTriggerCard('regulation_mode_changed_iqc').trigger(this, { mode }).catch(this.error);
     }
 
     isRegulationMode(value: SetRegulationModeIQC) {
@@ -159,10 +159,10 @@ class IQCTouch extends BaseDevice {
 
     processResults(results: { coils: boolean[]; discreteInputs: boolean[]; inputRegisters: number[]; holdingRegisters: number[] }): void {
         super.processResults(results);
-        this.setCapabilityValue('target_temperature.eco', results.holdingRegisters[IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE_ECONOMY]);
-        this.setCapabilityValue('heater_enabled_iqc', !!results.holdingRegisters[IQCRegisters.holdingRegisters.HEATER_ENABLED]);
-        this.setCapabilityValue('preheater_enabled_iqc', !!results.holdingRegisters[IQCRegisters.holdingRegisters.PREHEATER_ENABLED]);
-        this.setCapabilityValue('summer_night_cooling_enabled', !!results.holdingRegisters[IQCRegisters.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED]);
+        this.setCapabilityValue('target_temperature.eco', results.holdingRegisters[IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE_ECONOMY]).catch(this.error);
+        this.setCapabilityValue('heater_enabled_iqc', !!results.holdingRegisters[IQCRegisters.holdingRegisters.HEATER_ENABLED]).catch(this.error);
+        this.setCapabilityValue('preheater_enabled_iqc', !!results.holdingRegisters[IQCRegisters.holdingRegisters.PREHEATER_ENABLED]).catch(this.error);
+        this.setCapabilityValue('summer_night_cooling_enabled', !!results.holdingRegisters[IQCRegisters.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED]).catch(this.error);
     }
 
     async processAlarms(discreteInputs: boolean[]): Promise<void> {

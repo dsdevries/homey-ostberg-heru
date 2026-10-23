@@ -16,6 +16,8 @@ export class HeruAPI {
 
     isConnected = false;
     consecutiveFailedRead = 0;
+    consecutiveFailedWrite = 0;
+    MAX_WRITE_ATTEMPTS = 5;
     reconnectCounter = 0;
     POLLING_INTERVAL = 2000;
     timer: NodeJS.Timeout | null = null;
@@ -100,21 +102,30 @@ export class HeruAPI {
     }
 
     async writeModbus() {
-        const coilQueue = this.writeQueue['coils'];
-        const holdingRegisters = this.writeQueue['holdingRegisters'];
         try {
-            for (const coil of coilQueue) {
+            // Remove each item only after it was written, so a retry doesn't repeat writes that already succeeded
+            while (this.writeQueue.coils.length) {
+                const coil = this.writeQueue.coils[0];
                 const result = await this.client.writeCoils(coil.startingAddress, coil.values);
                 if (result) this.device?.log('Successfully wrote to coils starting at ', coil.startingAddress, ' --> ', coil.values);
+                this.writeQueue.coils.shift();
             }
-            for (const holdingRegister of holdingRegisters) {
+            while (this.writeQueue.holdingRegisters.length) {
+                const holdingRegister = this.writeQueue.holdingRegisters[0];
                 const result = await this.client.writeRegisters(holdingRegister.startingAddress, holdingRegister.values);
                 if (result) this.device?.log('Successfully wrote to registers starting at ', holdingRegister.startingAddress, ' --> ', holdingRegister.values);
+                this.writeQueue.holdingRegisters.shift();
             }
-            this.writeQueue.coils = [];
-            this.writeQueue.holdingRegisters = [];
+            this.consecutiveFailedWrite = 0;
         } catch (e) {
-            this.device?.error('Failed to write to client', e);
+            this.consecutiveFailedWrite++;
+            this.device?.error(`Failed to write to client (attempt ${this.consecutiveFailedWrite}/${this.MAX_WRITE_ATTEMPTS})`, e);
+            if (this.consecutiveFailedWrite >= this.MAX_WRITE_ATTEMPTS) {
+                this.device?.error('Giving up on pending writes, clearing write queue', this.writeQueue);
+                this.writeQueue.coils = [];
+                this.writeQueue.holdingRegisters = [];
+                this.consecutiveFailedWrite = 0;
+            }
         }
     }
 
@@ -123,38 +134,43 @@ export class HeruAPI {
     }
 
     async pollVentilationSystem() {
-        this.checkConnection();
-        if (this.isConnected) {
-            if (this.hasPendingWriteRequests()) {
-                this.ignoreNextRead = true;
-                this.device?.log('Processing write queue, going to ignore next read');
-                await this.writeModbus();
-            } else {
-                if (!this.ignoreNextRead) {
-                    try {
-                        const results = await this.readRegisters(this.client);
-                        this.reconnectCounter = 0;
-                        this.consecutiveFailedRead = 0;
-                        this.device?.setAvailable().catch((e) => this.device?.error(`Failed to set available: ${e}`));
-                        if (!this.ignoreNextRead) this.device?.processResults(results);
-                        else this.device?.log('Ignored read results');
-                    } catch (err) {
-                        if (this.consecutiveFailedRead < 2) {
-                            this.consecutiveFailedRead++;
-                        } else {
-                            this.device
-                                ?.setUnavailable(`Connected to ${this.device?.getSetting('ip')}:${this.device.getSetting('port')}, but got error: "${err}"`)
-                                .catch((e) => this.device?.error(`Failed to set unavailable: ${e}`));
+        try {
+            this.checkConnection();
+            if (this.isConnected) {
+                if (this.hasPendingWriteRequests()) {
+                    this.ignoreNextRead = true;
+                    this.device?.log('Processing write queue, going to ignore next read');
+                    await this.writeModbus();
+                } else {
+                    if (!this.ignoreNextRead) {
+                        try {
+                            const results = await this.readRegisters(this.client);
+                            this.reconnectCounter = 0;
+                            this.consecutiveFailedRead = 0;
+                            this.device?.setAvailable().catch((e) => this.device?.error(`Failed to set available: ${e}`));
+                            if (!this.ignoreNextRead) this.device?.processResults(results);
+                            else this.device?.log('Ignored read results');
+                        } catch (err) {
+                            if (this.consecutiveFailedRead < 2) {
+                                this.consecutiveFailedRead++;
+                            } else {
+                                this.device
+                                    ?.setUnavailable(`Connected to ${this.device?.getSetting('ip')}:${this.device.getSetting('port')}, but got error: "${err}"`)
+                                    .catch((e) => this.device?.error(`Failed to set unavailable: ${e}`));
+                            }
+                            this.device?.error(err);
                         }
-                        this.device?.error(err);
-                    }
-                } else this.device?.log('Ignored read');
-                this.ignoreNextRead = false;
+                    } else this.device?.log('Ignored read');
+                    this.ignoreNextRead = false;
+                }
             }
+        } catch (err) {
+            this.device?.error('Polling failed', err);
+        } finally {
+            this.timer = setTimeout(() => {
+                this.pollVentilationSystem();
+            }, this.POLLING_INTERVAL);
         }
-        this.timer = setTimeout(() => {
-            this.pollVentilationSystem();
-        }, this.POLLING_INTERVAL);
     }
 
     async readRegisters(client: InstanceType<typeof ModbusRTU>) {
