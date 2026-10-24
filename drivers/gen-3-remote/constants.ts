@@ -14,19 +14,6 @@ export const alarms = {
     filter_timer_alarm: 'Filter timer alarm'
 } as { [index: string]: string };
 
-// Bump when existing devices need their capabilities re-added in a new order
-export const CAPABILITY_ORDER_VERSION = 1;
-
-// Capabilities added after the first release, which are re-added once so they follow the order of the manifest
-export const REORDERED_CAPABILITIES = [
-    'current_fan_speed_gen3',
-    'co2_boost_active_gen3',
-    'rh_boost_active_gen3',
-    'heat_recovery_active_gen3',
-    'meter_power_heat_recovery',
-    'heating_active_gen3'
-];
-
 export const registers: ModbusRegisters = {
     coils: {
         start: 0,

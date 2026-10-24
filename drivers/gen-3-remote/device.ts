@@ -1,7 +1,7 @@
 import BaseDevice from '../base-device';
 import { HeruAPI } from '../heru-api';
 import { Gen3HoldingRegisters, Gen3Registers } from '../registers';
-import { alarms, CAPABILITY_ORDER_VERSION, registers, REORDERED_CAPABILITIES, RegulationModeGen3, SetRegulationModeGen3 } from './constants';
+import { alarms, registers, RegulationModeGen3, SetRegulationModeGen3 } from './constants';
 import { convertArrayOfBooleansToNumber, convertNumberToArrayOfBooleans } from './utils';
 
 // Operating functions shown by the unit, with the discrete input that reports whether they are active
@@ -26,7 +26,6 @@ export class Gen3Remote extends BaseDevice {
     async onInit() {
         await super.onInit();
         await this.upgradeExistingDevice();
-        await this.reorderNewCapabilities().catch(this.error);
         this.api = new HeruAPI(this, registers, this.getSetting('interval') || 2000);
         this.log(`${this.getName()} has been initialized`);
 
@@ -60,20 +59,6 @@ export class Gen3Remote extends BaseDevice {
         if (!this.hasCapability('current_fan_speed_gen3')) await this.addCapability('current_fan_speed_gen3');
         if (!this.hasCapability('heating_active_gen3')) await this.addCapability('heating_active_gen3');
         if (!this.hasCapability('heat_recovery_active_gen3')) await this.addCapability('heat_recovery_active_gen3');
-    }
-
-    /**
-     * Capabilities added in an app update are appended to the end of the device. Re-add them once in the order of the
-     * manifest, so they are grouped by function. Older capabilities stay in place to keep their Insights history, so the
-     * re-added ones form one block at the end.
-     */
-    async reorderNewCapabilities() {
-        if ((this.getStoreValue('capability_order_version') ?? 0) >= CAPABILITY_ORDER_VERSION) return;
-        const capabilities = (this.driver.manifest.capabilities as string[]).filter((c) => REORDERED_CAPABILITIES.includes(c) && this.hasCapability(c));
-        for (const capability of capabilities) await this.removeCapability(capability);
-        for (const capability of capabilities) await this.addCapability(capability);
-        await this.setStoreValue('capability_order_version', CAPABILITY_ORDER_VERSION);
-        this.log('Re-added capabilities in manifest order:', capabilities);
     }
 
     isFunctionActive(fn: Gen3Function) {

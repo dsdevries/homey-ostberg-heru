@@ -1,6 +1,6 @@
 import Homey from 'homey';
 import { v4 as uuid } from 'uuid';
-import { alarms as Gen3Alarms, CAPABILITY_ORDER_VERSION } from './constants';
+import { alarms as Gen3Alarms } from './constants';
 import { convertArrayOfBooleansToNumber } from './utils';
 
 class Gen3RemoteDriver extends Homey.Driver {
@@ -80,10 +80,6 @@ class Gen3RemoteDriver extends Homey.Driver {
                     name: 'Gen 3 Remote',
                     data: {
                         id: uuid()
-                    },
-                    // New devices get their capabilities in manifest order, so they don't need reordering
-                    store: {
-                        capability_order_version: CAPABILITY_ORDER_VERSION
                     },
                     settings: {
                         ip: data.ip,
