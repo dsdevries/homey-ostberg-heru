@@ -4454,6 +4454,7 @@
       "icon": "/assets/icons/schedule.svg",
       "getable": true,
       "setable": false,
+      "uiComponent": "sensor",
       "values": [
         {
           "id": "0",
