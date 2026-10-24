@@ -84,6 +84,11 @@ export enum Gen3HoldingRegisters {
     USER_FAN_SPEED,
     SUMMER_NIGHT_COOLING_ENABLED = 15,
     HEATER_ENABLED = 50,
+    // Reading the weekday copies the unit's time to a buffer, writing the seconds applies the buffer to the unit's clock
+    CLOCK_WEEKDAY = 59,
+    CLOCK_HOURS,
+    CLOCK_MINUTES,
+    CLOCK_SECONDS,
     WEEK_TIMER_ENABLED = 68,
     WEEK_TIMER_PROGRAM_1_START_HOUR,
     WEEK_TIMER_PROGRAM_1_START_MINUTE,

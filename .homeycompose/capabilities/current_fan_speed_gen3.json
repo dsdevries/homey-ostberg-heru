@@ -1,0 +1,46 @@
+{
+    "type": "enum",
+    "title": {
+        "en": "Current fan speed"
+    },
+    "desc": {
+        "en": "Fan speed set by the user or by the week timer"
+    },
+    "insights": true,
+    "greyout": true,
+    "icon": "/assets/icons/speedometer.svg",
+    "getable": true,
+    "setable": false,
+    "values": [
+        {
+            "id": "0",
+            "title": {
+                "en": "Off"
+            }
+        },
+        {
+            "id": "1",
+            "title": {
+                "en": "Min"
+            }
+        },
+        {
+            "id": "2",
+            "title": {
+                "en": "Standard"
+            }
+        },
+        {
+            "id": "3",
+            "title": {
+                "en": "Medium"
+            }
+        },
+        {
+            "id": "4",
+            "title": {
+                "en": "Max"
+            }
+        }
+    ]
+}

@@ -1,6 +1,6 @@
 import Homey from 'homey';
 import { v4 as uuid } from 'uuid';
-import { alarms as Gen3Alarms } from './constants';
+import { alarms as Gen3Alarms, CAPABILITY_ORDER_VERSION } from './constants';
 import { convertArrayOfBooleansToNumber } from './utils';
 
 class Gen3RemoteDriver extends Homey.Driver {
@@ -39,12 +39,19 @@ class Gen3RemoteDriver extends Homey.Driver {
         });
         this.homey.flow.getActionCard('set_week_timer_program_fan_speed_gen3').registerRunListener((args) => args.device.updateWeekProgramFanSpeed(args.program, args.fan_speed));
         this.homey.flow.getActionCard('set_week_timer_program_temperature_gen3').registerRunListener((args) => args.device.updateWeekProgramTemperature(args.program, args.temperature));
+        this.homey.flow.getActionCard('sync_clock_gen3').registerRunListener(({ device }) => device.syncClock());
 
         // ########## Conditions ##########
         this.homey.flow.getConditionCard('is_regulation_mode_gen3').registerRunListener((args) => args.device.isRegulationMode(args.mode));
         this.homey.flow.getConditionCard('is_heater_enabled_gen3').registerRunListener((args) => args.device.getCapabilityValue('heater_enabled_gen3'));
+        this.homey.flow.getConditionCard('is_week_timer_enabled_gen3').registerRunListener(({ device }) => device.getCapabilityValue('week_timer_enabled_gen3'));
+        this.homey.flow.getConditionCard('is_week_timer_program_active_gen3').registerRunListener(({ device, program }) => device.isWeekTimerProgramActive(program));
+        this.homey.flow.getConditionCard('is_function_active_gen3').registerRunListener(({ device, function: fn }) => device.isFunctionActive(fn));
+        this.homey.flow.getConditionCard('is_current_fan_speed_gen3').registerRunListener(({ device, speed }) => device.isCurrentFanSpeed(speed));
 
         // ########## Triggers ##########
+        this.homey.flow.getDeviceTriggerCard('function_started_gen3').registerRunListener(async ({ function: fn }, state) => fn === state.function);
+        this.homey.flow.getDeviceTriggerCard('function_stopped_gen3').registerRunListener(async ({ function: fn }, state) => fn === state.function);
         this.homey.flow
             .getDeviceTriggerCard('specific_alarm_reset')
             .registerRunListener(async ({ alarm }, state) => alarm.id === state.id)
@@ -73,6 +80,10 @@ class Gen3RemoteDriver extends Homey.Driver {
                     name: 'Gen 3 Remote',
                     data: {
                         id: uuid()
+                    },
+                    // New devices get their capabilities in manifest order, so they don't need reordering
+                    store: {
+                        capability_order_version: CAPABILITY_ORDER_VERSION
                     },
                     settings: {
                         ip: data.ip,

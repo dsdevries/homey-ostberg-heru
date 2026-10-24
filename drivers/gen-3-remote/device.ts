@@ -1,13 +1,32 @@
 import BaseDevice from '../base-device';
 import { HeruAPI } from '../heru-api';
 import { Gen3HoldingRegisters, Gen3Registers } from '../registers';
-import { alarms, registers, RegulationModeGen3, SetRegulationModeGen3 } from './constants';
+import { alarms, CAPABILITY_ORDER_VERSION, registers, REORDERED_CAPABILITIES, RegulationModeGen3, SetRegulationModeGen3 } from './constants';
 import { convertArrayOfBooleansToNumber, convertNumberToArrayOfBooleans } from './utils';
 
+// Operating functions shown by the unit, with the discrete input that reports whether they are active
+const FUNCTIONS = {
+    heating: Gen3Registers.discreteInputs.HEATING,
+    heat_recovery: Gen3Registers.discreteInputs.RECOVERING_HEAT_COLD,
+    co2_boost: Gen3Registers.discreteInputs.CO2_BOOST,
+    rh_boost: Gen3Registers.discreteInputs.RH_BOOST
+};
+type Gen3Function = keyof typeof FUNCTIONS;
+
+const FAN_SPEED_NAMES = ['Off', 'Min', 'Standard', 'Medium', 'Max'];
+const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const MINUTES_PER_WEEK = 7 * 24 * 60;
+const MAX_CLOCK_DRIFT_MINUTES = 2;
+const CLOCK_SYNC_RETRY_INTERVAL = 60 * 60 * 1000;
+
 export class Gen3Remote extends BaseDevice {
+    functionStates: Partial<Record<Gen3Function, boolean>> = {};
+    lastClockSyncAttempt = 0;
+
     async onInit() {
-        super.onInit();
+        await super.onInit();
         await this.upgradeExistingDevice();
+        await this.reorderNewCapabilities().catch(this.error);
         this.api = new HeruAPI(this, registers, this.getSetting('interval') || 2000);
         this.log(`${this.getName()} has been initialized`);
 
@@ -38,6 +57,105 @@ export class Gen3Remote extends BaseDevice {
         if (!this.hasCapability('week_timer_current_active_program_gen3')) await this.addCapability('week_timer_current_active_program_gen3');
         if (!this.hasCapability('summer_night_cooling_enabled')) await this.addCapability('summer_night_cooling_enabled');
         if (!this.hasCapability('meter_thermal_efficiency')) await this.addCapability('meter_thermal_efficiency');
+        if (!this.hasCapability('current_fan_speed_gen3')) await this.addCapability('current_fan_speed_gen3');
+        if (!this.hasCapability('heating_active_gen3')) await this.addCapability('heating_active_gen3');
+        if (!this.hasCapability('heat_recovery_active_gen3')) await this.addCapability('heat_recovery_active_gen3');
+    }
+
+    /**
+     * Capabilities added in an app update are appended to the end of the device. Re-add them once in the order of the
+     * manifest, so they are grouped by function. Older capabilities stay in place to keep their Insights history, so the
+     * re-added ones form one block at the end.
+     */
+    async reorderNewCapabilities() {
+        if ((this.getStoreValue('capability_order_version') ?? 0) >= CAPABILITY_ORDER_VERSION) return;
+        const capabilities = (this.driver.manifest.capabilities as string[]).filter((c) => REORDERED_CAPABILITIES.includes(c) && this.hasCapability(c));
+        for (const capability of capabilities) await this.removeCapability(capability);
+        for (const capability of capabilities) await this.addCapability(capability);
+        await this.setStoreValue('capability_order_version', CAPABILITY_ORDER_VERSION);
+        this.log('Re-added capabilities in manifest order:', capabilities);
+    }
+
+    isFunctionActive(fn: Gen3Function) {
+        return !!this.functionStates[fn];
+    }
+
+    isCurrentFanSpeed(speed: string) {
+        return this.getCapabilityValue('current_fan_speed_gen3') === speed;
+    }
+
+    isWeekTimerProgramActive(program: string) {
+        return this.getCapabilityValue('week_timer_current_active_program_gen3') === program;
+    }
+
+    getHomeyTime() {
+        const parts = new Intl.DateTimeFormat('en-GB', {
+            timeZone: this.homey.clock.getTimezone(),
+            weekday: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23'
+        }).formatToParts(new Date());
+        const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? '';
+        return {
+            weekday: WEEKDAY_NAMES.indexOf(part('weekday')),
+            hours: Number(part('hour')),
+            minutes: Number(part('minute')),
+            seconds: Number(part('second'))
+        };
+    }
+
+    async syncClock() {
+        this.lastClockSyncAttempt = Date.now();
+        const { weekday, hours, minutes, seconds } = this.getHomeyTime();
+        // One request, so the seconds are written last and the unit applies the new time in one go
+        await this.api?.writeRegisters(Gen3Registers.holdingRegisters.CLOCK_WEEKDAY, [weekday, hours, minutes, seconds]);
+        this.log(`Set the unit's clock to ${WEEKDAY_NAMES[weekday]} ${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+    }
+
+    checkClockDrift(holdingRegisters: number[]) {
+        if (!this.getSetting('sync_clock') || Date.now() - this.lastClockSyncAttempt < CLOCK_SYNC_RETRY_INTERVAL) return;
+        const homey = this.getHomeyTime();
+        const unitMinutes = holdingRegisters[Gen3Registers.holdingRegisters.CLOCK_WEEKDAY] * 1440 + holdingRegisters[Gen3Registers.holdingRegisters.CLOCK_HOURS] * 60 + holdingRegisters[Gen3Registers.holdingRegisters.CLOCK_MINUTES];
+        const homeyMinutes = homey.weekday * 1440 + homey.hours * 60 + homey.minutes;
+        const difference = Math.abs(unitMinutes - homeyMinutes);
+        const drift = Math.min(difference, MINUTES_PER_WEEK - difference);
+        if (drift > MAX_CLOCK_DRIFT_MINUTES) {
+            this.log(`The unit's clock is ${drift} minutes off, setting it to Homey's time`);
+            this.syncClock().catch(this.error);
+        }
+    }
+
+    processFunctions(discreteInputs: boolean[]) {
+        (Object.keys(FUNCTIONS) as Gen3Function[]).forEach((fn) => {
+            const active = !!discreteInputs[FUNCTIONS[fn]];
+            const previous = this.functionStates[fn];
+            this.functionStates[fn] = active;
+            if (this.hasCapability(`${fn}_active_gen3`)) this.setCapabilityValue(`${fn}_active_gen3`, active).catch(this.error);
+            // Don't trigger on the first read after starting, when the previous state is unknown
+            if (previous !== undefined && previous !== active) {
+                this.homey.flow.getDeviceTriggerCard(active ? 'function_started_gen3' : 'function_stopped_gen3').trigger(this, {}, { function: fn }).catch(this.error);
+            }
+        });
+    }
+
+    processCurrentFanSpeed(speed: number) {
+        const previous = this.getCapabilityValue('current_fan_speed_gen3');
+        const value = speed.toString(10);
+        this.setCapabilityValue('current_fan_speed_gen3', value).catch(this.error);
+        if (previous !== null && previous !== value) {
+            this.homey.flow.getDeviceTriggerCard('current_fan_speed_changed_gen3').trigger(this, { speed: FAN_SPEED_NAMES[speed] ?? value }).catch(this.error);
+        }
+    }
+
+    processWeekTimerProgram(program: number) {
+        const previous = this.getCapabilityValue('week_timer_current_active_program_gen3');
+        const value = program.toString(10);
+        this.setCapabilityValue('week_timer_current_active_program_gen3', value).catch(this.error);
+        if (previous !== null && previous !== value) {
+            this.homey.flow.getDeviceTriggerCard('week_timer_program_changed_gen3').trigger(this, { program }).catch(this.error);
+        }
     }
 
     async setHeaterEnabled(value: boolean) {
@@ -213,12 +331,24 @@ export class Gen3Remote extends BaseDevice {
     processResults(results: { coils: boolean[]; discreteInputs: boolean[]; inputRegisters: number[]; holdingRegisters: number[] }): void {
         super.processResults(results);
 
+        // Discrete inputs
+        if (results.discreteInputs.length) {
+            this.processFunctions(results.discreteInputs);
+        }
+
         // Inputs Registers
         if (results.inputRegisters.length) {
             if (this.hasCapability('measure_co2')) {
                 this.setCapabilityValue('measure_co2', results.inputRegisters[Gen3Registers.inputRegisters.CARBON_DIOXIDE]).catch(this.error);
-                this.setCapabilityValue('week_timer_current_active_program_gen3', results.inputRegisters[Gen3Registers.inputRegisters.WEEK_TIMER_CURRENT_ACTIVE_PROGRAM].toString(10)).catch(this.error);
             }
+            if (this.hasCapability('meter_humidity_relative')) {
+                this.setCapabilityValue('meter_humidity_relative', this.roundToOneDecimal(results.inputRegisters[Gen3Registers.inputRegisters.RELATIVE_HUMIDITY])).catch(this.error);
+            }
+            if (this.hasCapability('meter_power_heat_recovery')) {
+                this.setCapabilityValue('meter_power_heat_recovery', (this.checkNegativeNumber(results.inputRegisters[Gen3Registers.inputRegisters.HEAT_COLR_RECOVERY_POWER]) / 255) * 100).catch(this.error);
+            }
+            this.processWeekTimerProgram(results.inputRegisters[Gen3Registers.inputRegisters.WEEK_TIMER_CURRENT_ACTIVE_PROGRAM]);
+            this.processCurrentFanSpeed(results.inputRegisters[Gen3Registers.inputRegisters.CURRENT_FAN_SPEED]);
         }
 
         // Holding Registers
@@ -254,6 +384,7 @@ export class Gen3Remote extends BaseDevice {
             this.setCapabilityValue('summer_night_cooling_enabled', !!results.holdingRegisters[Gen3Registers.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED]).catch(this.error);
             this.setCapabilityValue('week_timer_enabled_gen3', !!results.holdingRegisters[Gen3Registers.holdingRegisters.WEEK_TIMER_ENABLED]).catch(this.error);
 
+            this.checkClockDrift(results.holdingRegisters);
         }
 
     }

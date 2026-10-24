@@ -29,6 +29,12 @@ function withTimeout<T>(request: Promise<T>, ms: number, description: string): P
     return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
 }
 
+function indexByAddress<T>(data: T[], start: number): T[] {
+    const indexed = new Array<T>(start);
+    indexed.push(...data);
+    return indexed;
+}
+
 export class HeruAPI {
     device?: BaseDevice;
     client: ModbusRTU;
@@ -221,21 +227,26 @@ export class HeruAPI {
         const inputRegisterValues = await withTimeout(client.readInputRegisters(inputRegisters.start, inputRegisters.count), this.REQUEST_TIMEOUT, 'Reading input registers');
         const holdingRegisterValues = await withTimeout(client.readHoldingRegisters(holdingRegisters.start, holdingRegisters.count), this.REQUEST_TIMEOUT, 'Reading holding registers');
 
+        // Index every result by its register address, so the register enums can be used directly even when a range doesn't start at 0
         return {
-            coils: coilStatus.data,
-            discreteInputs: discreteInputStatus.data,
-            inputRegisters: inputRegisterValues.data,
-            holdingRegisters: holdingRegisterValues.data
+            coils: indexByAddress(coilStatus.data, coils.start),
+            discreteInputs: indexByAddress(discreteInputStatus.data, discreteInputs.start),
+            inputRegisters: indexByAddress(inputRegisterValues.data, inputRegisters.start),
+            holdingRegisters: indexByAddress(holdingRegisterValues.data, holdingRegisters.start)
         };
     }
 
-    // The returned promise resolves once the value is written to the unit, and rejects if the write is dropped
     writeRegister(startRegister: number, value: number): Promise<void> {
+        return this.writeRegisters(startRegister, [value]);
+    }
+
+    // The returned promise resolves once the values are written to the unit, and rejects if the write is dropped
+    writeRegisters(startRegister: number, values: number[]): Promise<void> {
         if (!this.isConnected) return Promise.reject(new Error('Not connected to the unit'));
         this.ignoreNextRead = true;
-        this.device?.log('Adding registers starting at: ', startRegister, '-->', value, 'to write queue');
+        this.device?.log('Adding registers starting at: ', startRegister, '-->', values, 'to write queue');
         return new Promise((resolve, reject) => {
-            this.writeQueue['holdingRegisters'].push({ values: [value], startingAddress: startRegister, resolve, reject });
+            this.writeQueue['holdingRegisters'].push({ values, startingAddress: startRegister, resolve, reject });
         });
     }
 

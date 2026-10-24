@@ -5,7 +5,7 @@ import { alarms, registers, SetRegulationModeIQC, RegulationModeIQC } from './co
 
 class IQCTouch extends BaseDevice {
     async onInit() {
-        super.onInit();
+        await super.onInit();
         await this.upgradeExistingDevice();
 
         const iqcRegisters: ModbusRegisters = { ...registers, holdingRegisters: { start: 0, count: 67 } };

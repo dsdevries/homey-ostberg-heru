@@ -114,6 +114,32 @@
         ]
       },
       {
+        "id": "current_fan_speed_changed_gen3",
+        "title": {
+          "en": "Current fan speed changed"
+        },
+        "hint": {
+          "en": "The fan speed set by the user or by the week timer changed."
+        },
+        "tokens": [
+          {
+            "name": "speed",
+            "type": "string",
+            "title": {
+              "en": "Fan speed"
+            },
+            "example": "Standard"
+          }
+        ],
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          }
+        ]
+      },
+      {
         "id": "fan_mode_changed",
         "title": {
           "en": "Fan mode changed"
@@ -134,6 +160,106 @@
             "name": "device",
             "type": "device",
             "filter": "driver_id=gen-3-remote|iqc-touch"
+          }
+        ]
+      },
+      {
+        "id": "function_started_gen3",
+        "title": {
+          "en": "A function started"
+        },
+        "titleFormatted": {
+          "en": "[[function]] started"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          },
+          {
+            "name": "function",
+            "type": "dropdown",
+            "title": {
+              "en": "Function"
+            },
+            "required": true,
+            "values": [
+              {
+                "id": "heating",
+                "label": {
+                  "en": "Heating"
+                }
+              },
+              {
+                "id": "heat_recovery",
+                "label": {
+                  "en": "Heat recovery"
+                }
+              },
+              {
+                "id": "co2_boost",
+                "label": {
+                  "en": "CO₂ boost"
+                }
+              },
+              {
+                "id": "rh_boost",
+                "label": {
+                  "en": "Humidity boost"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "function_stopped_gen3",
+        "title": {
+          "en": "A function stopped"
+        },
+        "titleFormatted": {
+          "en": "[[function]] stopped"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          },
+          {
+            "name": "function",
+            "type": "dropdown",
+            "title": {
+              "en": "Function"
+            },
+            "required": true,
+            "values": [
+              {
+                "id": "heating",
+                "label": {
+                  "en": "Heating"
+                }
+              },
+              {
+                "id": "heat_recovery",
+                "label": {
+                  "en": "Heat recovery"
+                }
+              },
+              {
+                "id": "co2_boost",
+                "label": {
+                  "en": "CO₂ boost"
+                }
+              },
+              {
+                "id": "rh_boost",
+                "label": {
+                  "en": "Humidity boost"
+                }
+              }
+            ]
           }
         ]
       },
@@ -254,6 +380,32 @@
             "type": "string"
           }
         ]
+      },
+      {
+        "id": "week_timer_program_changed_gen3",
+        "title": {
+          "en": "Active week timer program changed"
+        },
+        "tokens": [
+          {
+            "name": "program",
+            "type": "number",
+            "title": {
+              "en": "Program"
+            },
+            "example": 1
+          }
+        ],
+        "hint": {
+          "en": "The program number is 0 when no program is active."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          }
+        ]
       }
     ],
     "conditions": [
@@ -271,6 +423,62 @@
             "name": "device",
             "type": "device",
             "filter": "driver_id=gen-3-remote|iqc-touch"
+          }
+        ]
+      },
+      {
+        "id": "is_current_fan_speed_gen3",
+        "title": {
+          "en": "Current fan speed !{{is|isn't}}"
+        },
+        "titleFormatted": {
+          "en": "Current fan speed !{{is|isn't}} [[speed]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          },
+          {
+            "name": "speed",
+            "type": "dropdown",
+            "title": {
+              "en": "Fan speed"
+            },
+            "required": true,
+            "values": [
+              {
+                "id": "0",
+                "label": {
+                  "en": "Off"
+                }
+              },
+              {
+                "id": "1",
+                "label": {
+                  "en": "Min"
+                }
+              },
+              {
+                "id": "2",
+                "label": {
+                  "en": "Standard"
+                }
+              },
+              {
+                "id": "3",
+                "label": {
+                  "en": "Medium"
+                }
+              },
+              {
+                "id": "4",
+                "label": {
+                  "en": "Max"
+                }
+              }
+            ]
           }
         ]
       },
@@ -325,6 +533,56 @@
                 "id": "away",
                 "label": {
                   "en": "Away"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "is_function_active_gen3",
+        "title": {
+          "en": "Function !{{is|isn't}} active"
+        },
+        "titleFormatted": {
+          "en": "[[function]] !{{is|isn't}} active"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          },
+          {
+            "name": "function",
+            "type": "dropdown",
+            "title": {
+              "en": "Function"
+            },
+            "required": true,
+            "values": [
+              {
+                "id": "heating",
+                "label": {
+                  "en": "Heating"
+                }
+              },
+              {
+                "id": "heat_recovery",
+                "label": {
+                  "en": "Heat recovery"
+                }
+              },
+              {
+                "id": "co2_boost",
+                "label": {
+                  "en": "CO₂ boost"
+                }
+              },
+              {
+                "id": "rh_boost",
+                "label": {
+                  "en": "Humidity boost"
                 }
               }
             ]
@@ -603,6 +861,79 @@
             "name": "device",
             "type": "device",
             "filter": "driver_id=gen-3-remote|iqc-touch"
+          }
+        ]
+      },
+      {
+        "id": "is_week_timer_enabled_gen3",
+        "title": {
+          "en": "Week timer !{{enabled|disabled}}"
+        },
+        "titleFormatted": {
+          "en": "Week timer is !{{enabled|disabled}}"
+        },
+        "highlight": true,
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          }
+        ]
+      },
+      {
+        "id": "is_week_timer_program_active_gen3",
+        "title": {
+          "en": "Week timer program !{{is|isn't}} active"
+        },
+        "titleFormatted": {
+          "en": "Week timer program [[program]] !{{is|isn't}} active"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          },
+          {
+            "name": "program",
+            "type": "dropdown",
+            "title": {
+              "en": "Program"
+            },
+            "required": true,
+            "values": [
+              {
+                "id": "1",
+                "label": {
+                  "en": "1"
+                }
+              },
+              {
+                "id": "2",
+                "label": {
+                  "en": "2"
+                }
+              },
+              {
+                "id": "3",
+                "label": {
+                  "en": "3"
+                }
+              },
+              {
+                "id": "4",
+                "label": {
+                  "en": "4"
+                }
+              },
+              {
+                "id": "5",
+                "label": {
+                  "en": "5"
+                }
+              }
+            ]
           }
         ]
       }
@@ -1410,6 +1741,22 @@
             ]
           }
         ]
+      },
+      {
+        "id": "sync_clock_gen3",
+        "title": {
+          "en": "Set the unit's clock to Homey's time"
+        },
+        "hint": {
+          "en": "The week timer runs on the unit's clock. Use this to correct it, for example after a daylight saving time change."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=gen-3-remote"
+          }
+        ]
       }
     ]
   },
@@ -1437,26 +1784,32 @@
         "target_temperature",
         "fan_mode",
         "regulation_mode_gen3",
-        "measure_co2",
+        "current_fan_speed_gen3",
         "meter_temperature_outdoor_air",
         "meter_temperature_supply_air",
         "meter_temperature_waste_air",
         "meter_temperature_extract_air",
-        "meter_temperature_heat_recovery_wheel",
         "meter_temperature_room",
-        "meter_thermal_efficiency",
-        "meter_temperature_water",
+        "measure_co2",
+        "co2_boost_active_gen3",
         "meter_humidity_relative",
+        "rh_boost_active_gen3",
+        "heat_recovery_active_gen3",
+        "meter_power_heat_recovery",
+        "meter_temperature_heat_recovery_wheel",
+        "meter_thermal_efficiency",
+        "heater_enabled_gen3",
+        "heating_active_gen3",
+        "meter_power_heating",
+        "meter_temperature_water",
         "meter_rpm_supply",
         "meter_rpm_extract",
         "meter_power_supply",
         "meter_power_extract",
         "meter_pressure_supply",
         "meter_pressure_extract",
-        "meter_power_heating",
         "alarm_active_alarms",
         "meter_filter_timer",
-        "heater_enabled_gen3",
         "week_timer_enabled_gen3",
         "week_timer_current_active_program_gen3",
         "summer_night_cooling_enabled",
@@ -1517,6 +1870,17 @@
                 "en": "milliseconds"
               },
               "value": 2000
+            },
+            {
+              "id": "sync_clock",
+              "type": "checkbox",
+              "label": {
+                "en": "Keep the unit's clock in sync with Homey"
+              },
+              "hint": {
+                "en": "The week timer runs on the unit's clock. When enabled, the clock is set to Homey's time whenever it is more than 2 minutes off, for example after a daylight saving time change."
+              },
+              "value": false
             }
           ]
         },
@@ -1549,6 +1913,22 @@
               "id": "capability_enabled_meter_humidity_relative",
               "label": {
                 "en": "Relative humidity"
+              },
+              "type": "checkbox",
+              "value": true
+            },
+            {
+              "id": "capability_enabled_co2_boost_active_gen3",
+              "label": {
+                "en": "CO₂ boost active"
+              },
+              "type": "checkbox",
+              "value": true
+            },
+            {
+              "id": "capability_enabled_rh_boost_active_gen3",
+              "label": {
+                "en": "Humidity boost active"
               },
               "type": "checkbox",
               "value": true
@@ -1605,6 +1985,14 @@
               "id": "capability_enabled_meter_power_heating",
               "label": {
                 "en": "Heating power"
+              },
+              "type": "checkbox",
+              "value": true
+            },
+            {
+              "id": "capability_enabled_meter_power_heat_recovery",
+              "label": {
+                "en": "Heat recovery power"
               },
               "type": "checkbox",
               "value": true
@@ -3243,6 +3631,67 @@
       "getable": true,
       "setable": false
     },
+    "co2_boost_active_gen3": {
+      "type": "boolean",
+      "title": {
+        "en": "CO₂ boost active"
+      },
+      "desc": {
+        "en": "CO₂ boost active"
+      },
+      "insights": true,
+      "insightsTitleTrue": "CO₂ boost started",
+      "insightsTitleFalse": "CO₂ boost stopped",
+      "icon": "/assets/icons/speedometer.svg",
+      "getable": true,
+      "setable": false
+    },
+    "current_fan_speed_gen3": {
+      "type": "enum",
+      "title": {
+        "en": "Current fan speed"
+      },
+      "desc": {
+        "en": "Fan speed set by the user or by the week timer"
+      },
+      "insights": true,
+      "greyout": true,
+      "icon": "/assets/icons/speedometer.svg",
+      "getable": true,
+      "setable": false,
+      "values": [
+        {
+          "id": "0",
+          "title": {
+            "en": "Off"
+          }
+        },
+        {
+          "id": "1",
+          "title": {
+            "en": "Min"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "Standard"
+          }
+        },
+        {
+          "id": "3",
+          "title": {
+            "en": "Medium"
+          }
+        },
+        {
+          "id": "4",
+          "title": {
+            "en": "Max"
+          }
+        }
+      ]
+    },
     "fan_mode": {
       "type": "enum",
       "title": {
@@ -3287,6 +3736,21 @@
       "getable": true,
       "setable": true
     },
+    "heat_recovery_active_gen3": {
+      "type": "boolean",
+      "title": {
+        "en": "Heat recovery active"
+      },
+      "desc": {
+        "en": "Heat recovery active"
+      },
+      "insights": true,
+      "insightsTitleTrue": "Heat recovery started",
+      "insightsTitleFalse": "Heat recovery stopped",
+      "icon": "/assets/icons/recovery.svg",
+      "getable": true,
+      "setable": false
+    },
     "heater_enabled_gen3": {
       "type": "boolean",
       "title": {
@@ -3318,6 +3782,21 @@
       "insights": true,
       "insightsTitleTrue": "Heater enabled",
       "insightsTitleFalse": "Heater disabled"
+    },
+    "heating_active_gen3": {
+      "type": "boolean",
+      "title": {
+        "en": "Heating active"
+      },
+      "desc": {
+        "en": "Heating active"
+      },
+      "insights": true,
+      "insightsTitleTrue": "Heating started",
+      "insightsTitleFalse": "Heating stopped",
+      "icon": "/assets/icons/heating.svg",
+      "getable": true,
+      "setable": false
     },
     "meter_filter_timer": {
       "title": {
@@ -3401,6 +3880,35 @@
       "setable": false,
       "greyout": true,
       "icon": "/assets/icons/speedometer.svg",
+      "insights": true
+    },
+    "meter_power_heat_recovery": {
+      "title": {
+        "en": "Heat recovery power"
+      },
+      "desc": {
+        "en": "Heat recovery power"
+      },
+      "tokens": [
+        {
+          "name": "value",
+          "title": {
+            "en": "%"
+          },
+          "example": {
+            "en": 50
+          }
+        }
+      ],
+      "type": "number",
+      "decimals": 0,
+      "units": {
+        "en": "%"
+      },
+      "getable": true,
+      "setable": false,
+      "greyout": true,
+      "icon": "/assets/icons/recovery.svg",
       "insights": true
     },
     "meter_power_heating": {
@@ -3900,6 +4408,21 @@
       ],
       "getable": true,
       "setable": true
+    },
+    "rh_boost_active_gen3": {
+      "type": "boolean",
+      "title": {
+        "en": "Humidity boost active"
+      },
+      "desc": {
+        "en": "Humidity boost active"
+      },
+      "insights": true,
+      "insightsTitleTrue": "Humidity boost started",
+      "insightsTitleFalse": "Humidity boost stopped",
+      "icon": "/assets/icons/humidity.svg",
+      "getable": true,
+      "setable": false
     },
     "summer_night_cooling_enabled": {
       "type": "boolean",

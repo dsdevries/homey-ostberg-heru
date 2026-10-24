@@ -47,13 +47,30 @@ Since Östberg has changed naming convention between the Gen 3 and the IQC for E
 
 **Clear alarms** and **Reset filter timer** did not work for me, so the flows for this are left out of the application as of now. If you own a system with the IQC Touch panel and want to test if this could work on your system, please contact me.
 
-I am also getting alarms on **Supply fan** and **Extract fan** during normal operation, Östberg said that it could possibly a incorrect modbus configuration on their side.
+Alarms used to be read from the wrong Modbus addresses, which caused false **Supply fan** and **Extract fan** alarms during normal operation (they were actually the *Heating* and *Heat recovery* status). This is fixed, so after updating the alarms reflect the real state of the unit.
+
+### Gen 3: clock
+
+The week timer runs on the unit's own clock. Enable **Keep the unit's clock in sync with Homey** in the device settings to have the app correct the clock whenever it is more than 2 minutes off (for example after a daylight saving time change), or use the **Set the unit's clock to Homey's time** flow card.
 
 ## Disclaimer
 
 -   I take no responsibility for any damages caused by the use of this app.
 
 # Changelog
+
+## Unreleased
+
+### Feature
+- Gen 3: Current fan speed, set by the user or the week timer
+- Gen 3: Heating, heat recovery, CO₂ boost and humidity boost status, with flow cards for when they start or stop
+- Gen 3: Heat recovery power and relative humidity
+- Gen 3: Keep the unit's clock in sync with Homey, and a flow card to set it
+- Gen 3: Flow cards for the week timer being enabled, the active program and the current fan speed
+
+### Bug fix
+- Alarms and status flags were read from the wrong Modbus addresses
+- Gen 3: The active week timer program was only updated when the CO₂ capability was enabled
 
 ## 1.7.0
 

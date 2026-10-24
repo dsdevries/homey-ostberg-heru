@@ -4,6 +4,12 @@ import { SetRegulationModeGen3, RegulationModeGen3 } from './gen-3-remote/consta
 import { SetRegulationModeIQC, RegulationModeIQC } from './iqc-touch/constants';
 import { BaseRegisters } from './registers';
 
+interface ManifestSetting {
+    id?: string;
+    value?: unknown;
+    children?: ManifestSetting[];
+}
+
 enum FanMode {
     OFF = 'off',
     OVERPRESSURE = 'overpressure',
@@ -21,7 +27,25 @@ abstract class BaseDevice extends Homey.Device {
             await this.setFanMode(value);
             this.triggerFanModeChanged(value);
         });
-        this.addOrRemoveCapabilities().catch(this.error);
+        await this.addMissingSettings().catch(this.error);
+        await this.addOrRemoveCapabilities().catch(this.error);
+    }
+
+    /**
+     * Settings added in an app update are missing on devices that were added before, so they don't show up and the
+     * capabilities they enable are never added. Fill them in with the default values from the driver manifest.
+     */
+    async addMissingSettings() {
+        const flatten = (settings: ManifestSetting[]): ManifestSetting[] => settings.flatMap((setting) => [setting, ...flatten(setting.children ?? [])]);
+        const currentSettings = this.getSettings();
+        const missingSettings = Object.fromEntries(
+            flatten(this.driver.manifest.settings ?? [])
+                .filter(({ id, value }) => id !== undefined && value !== undefined && currentSettings[id] === undefined)
+                .map(({ id, value }) => [id, value])
+        );
+        if (!Object.keys(missingSettings).length) return;
+        await this.setSettings(missingSettings);
+        this.log('Added missing settings with their default values:', Object.keys(missingSettings));
     }
 
     async isFanMode(value: FanMode) {
@@ -232,7 +256,7 @@ abstract class BaseDevice extends Homey.Device {
 
     async onSettings(event: { oldSettings: { [index: string]: any }; newSettings: { [index: string]: any }; changedKeys: string[] }): Promise<string | void> {
         this.log(`${this.getName()} settings where changed: ${event.changedKeys}`);
-        this.addOrRemoveCapabilities(event.newSettings);
+        await this.addOrRemoveCapabilities(event.newSettings);
         if (event.changedKeys.includes('port') || event.changedKeys.includes('ip') || event.changedKeys.includes('tcp')) {
             this.api?.reconnect(event.newSettings.ip, event.newSettings.port, !!event.newSettings.tcp);
         }
@@ -252,15 +276,15 @@ abstract class BaseDevice extends Homey.Device {
 
     async addOrRemoveCapabilities(newSettings?: { [index: string]: any }): Promise<void> {
         const settings = newSettings ?? this.getSettings();
-        Object.keys(settings).forEach((k: string) => {
-            if (k.includes('capability_enabled_')) {
-                const capability = k.replace('capability_enabled_', '');
-                if (this.hasCapability(capability) !== settings[k]) {
-                    settings[k] ? this.addCapability(capability) : this.removeCapability(capability);
-                    this.log(capability, 'was', settings[k] ? 'added' : 'removed');
-                }
-            }
-        });
+        const changes = Object.keys(settings)
+            .filter((k) => k.includes('capability_enabled_'))
+            .map((k) => [k.replace('capability_enabled_', ''), !!settings[k]] as const)
+            .filter(([capability, enabled]) => this.hasCapability(capability) !== enabled)
+            .map(async ([capability, enabled]) => {
+                await (enabled ? this.addCapability(capability) : this.removeCapability(capability));
+                this.log(capability, 'was', enabled ? 'added' : 'removed');
+            });
+        await Promise.all(changes);
     }
 
     roundToOneDecimal(value: number) {
