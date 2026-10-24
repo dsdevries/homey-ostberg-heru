@@ -13,23 +13,23 @@ class IQCTouch extends BaseDevice {
         this.api = new HeruAPI(this, iqcRegisters, this.getSetting('interval') ?? 2000);
         this.log(`${this.getName()} has been initialized`);
         this.registerCapabilityListener('regulation_mode_iqc', async (value: SetRegulationModeIQC) => {
-            this.setRegulationMode(value);
+            await this.setRegulationMode(value);
             this.triggerRegulationModeChanged(value);
         });
         this.registerCapabilityListener('target_temperature', async (value) => {
-            this.setTargetTemperature(value, false);
+            await this.setTargetTemperature(value, false);
         });
         this.registerCapabilityListener('target_temperature.eco', async (value) => {
-            this.setTargetTemperature(value, true);
+            await this.setTargetTemperature(value, true);
         });
         this.registerCapabilityListener('heater_enabled_iqc', async (value) => {
-            this.setHeaterEnabled(value);
+            await this.setHeaterEnabled(value);
         });
         this.registerCapabilityListener('preheater_enabled_iqc', async (value) => {
-            this.setPreheaterEnabled(value);
+            await this.setPreheaterEnabled(value);
         });
         this.registerCapabilityListener('summer_night_cooling_enabled', async (value) => {
-            this.setSummerNightCoolingEnabled(value);
+            await this.setSummerNightCoolingEnabled(value);
         });
     }
 
@@ -41,20 +41,20 @@ class IQCTouch extends BaseDevice {
     }
 
     async setTargetTemperature(target: number, eco: boolean) {
-        if (eco) this.api?.writeRegister(IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE_ECONOMY, target);
-        else this.api?.writeRegister(IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE, target);
+        if (eco) await this.api?.writeRegister(IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE_ECONOMY, target);
+        else await this.api?.writeRegister(IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE, target);
     }
 
     async setHeaterEnabled(value: boolean) {
-        this.api?.writeRegister(IQCRegisters.holdingRegisters.HEATER_ENABLED, value ? 1 : 0);
+        await this.api?.writeRegister(IQCRegisters.holdingRegisters.HEATER_ENABLED, value ? 1 : 0);
     }
 
     async setPreheaterEnabled(value: boolean) {
-        this.api?.writeRegister(IQCRegisters.holdingRegisters.PREHEATER_ENABLED, value ? 1 : 0);
+        await this.api?.writeRegister(IQCRegisters.holdingRegisters.PREHEATER_ENABLED, value ? 1 : 0);
     }
 
     async setSummerNightCoolingEnabled(value: boolean) {
-        this.api?.writeRegister(IQCRegisters.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED, value ? 1 : 0);
+        await this.api?.writeRegister(IQCRegisters.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED, value ? 1 : 0);
     }
 
     async onAdded() {
@@ -85,37 +85,37 @@ class IQCTouch extends BaseDevice {
                 mode = 'Extract S/W';
                 break;
         }
-        this.homey.flow.getDeviceTriggerCard('regulation_mode_changed_iqc').trigger(this, { mode });
+        this.homey.flow.getDeviceTriggerCard('regulation_mode_changed_iqc').trigger(this, { mode }).catch(this.error);
     }
 
     isRegulationMode(value: SetRegulationModeIQC) {
         return this.getCapabilityValue('regulation_mode_iqc') === value;
     }
 
-    setRegulationMode(value: SetRegulationModeIQC) {
+    async setRegulationMode(value: SetRegulationModeIQC) {
         switch (value) {
             case SetRegulationModeIQC.SUPPLY:
-                this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.SUPPLY);
+                await this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.SUPPLY);
                 this.setCapabilityValue('measure_temperature', this.getCapabilityValue('meter_temperature_supply_air')).catch(this.error);
                 this.setCapabilityValue('measure_temperature.eco', this.getCapabilityValue('meter_temperature_supply_air')).catch(this.error);
                 break;
             case SetRegulationModeIQC.EXTRACT:
-                this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.EXTRACT);
+                await this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.EXTRACT);
                 this.setCapabilityValue('measure_temperature', this.getCapabilityValue('meter_temperature_extract_air')).catch(this.error);
                 this.setCapabilityValue('measure_temperature.eco', this.getCapabilityValue('meter_temperature_extract_air')).catch(this.error);
                 break;
             case SetRegulationModeIQC.ROOM:
-                this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.ROOM);
+                await this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.ROOM);
                 this.setCapabilityValue('measure_temperature', this.getCapabilityValue('meter_temperature_room')).catch(this.error);
                 this.setCapabilityValue('measure_temperature.eco', this.getCapabilityValue('meter_temperature_room')).catch(this.error);
                 break;
             case SetRegulationModeIQC.EXTRACT_SW:
-                this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.EXTRACT_SW);
+                await this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.EXTRACT_SW);
                 this.setCapabilityValue('measure_temperature', this.getCapabilityValue('meter_temperature_extract_air')).catch(this.error);
                 this.setCapabilityValue('measure_temperature.eco', this.getCapabilityValue('meter_temperature_extract_air')).catch(this.error);
                 break;
             case SetRegulationModeIQC.ROOM_SW:
-                this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.ROOM_SW);
+                await this.api?.writeRegister(IQCRegisters.holdingRegisters.REGULATION_MODE, RegulationModeIQC.ROOM_SW);
                 this.setCapabilityValue('measure_temperature', this.getCapabilityValue('meter_temperature_room')).catch(this.error);
                 this.setCapabilityValue('measure_temperature.eco', this.getCapabilityValue('meter_temperature_room')).catch(this.error);
                 break;
@@ -159,10 +159,10 @@ class IQCTouch extends BaseDevice {
 
     processResults(results: { coils: boolean[]; discreteInputs: boolean[]; inputRegisters: number[]; holdingRegisters: number[] }): void {
         super.processResults(results);
-        this.setCapabilityValue('target_temperature.eco', results.holdingRegisters[IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE_ECONOMY]);
-        this.setCapabilityValue('heater_enabled_iqc', !!results.holdingRegisters[IQCRegisters.holdingRegisters.HEATER_ENABLED]);
-        this.setCapabilityValue('preheater_enabled_iqc', !!results.holdingRegisters[IQCRegisters.holdingRegisters.PREHEATER_ENABLED]);
-        this.setCapabilityValue('summer_night_cooling_enabled', !!results.holdingRegisters[IQCRegisters.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED]);
+        this.setCapabilityValue('target_temperature.eco', results.holdingRegisters[IQCRegisters.holdingRegisters.SETPOINT_TEMPERATURE_ECONOMY]).catch(this.error);
+        this.setCapabilityValue('heater_enabled_iqc', !!results.holdingRegisters[IQCRegisters.holdingRegisters.HEATER_ENABLED]).catch(this.error);
+        this.setCapabilityValue('preheater_enabled_iqc', !!results.holdingRegisters[IQCRegisters.holdingRegisters.PREHEATER_ENABLED]).catch(this.error);
+        this.setCapabilityValue('summer_night_cooling_enabled', !!results.holdingRegisters[IQCRegisters.holdingRegisters.SUMMER_NIGHT_COOLING_ENABLED]).catch(this.error);
     }
 
     async processAlarms(discreteInputs: boolean[]): Promise<void> {
