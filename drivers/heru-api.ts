@@ -1,13 +1,23 @@
 import ModbusRTU from 'modbus-serial';
 import BaseDevice from './base-device';
-interface WriteModbusCoils {
-    values: boolean[];
+interface PendingWrite {
     startingAddress: number;
+    // Settle the promise returned to the caller that queued the write
+    resolve: () => void;
+    reject: (err: Error) => void;
 }
 
-interface WriteModbusRegisters {
+interface WriteModbusCoils extends PendingWrite {
+    values: boolean[];
+}
+
+interface WriteModbusRegisters extends PendingWrite {
     values: number[];
-    startingAddress: number;
+}
+
+// modbus-serial adds a modbusCode when the unit answers with an exception, e.g. for an unsupported register or an invalid value
+function isModbusException(e: unknown): e is Error & { modbusCode: number } {
+    return e instanceof Error && typeof (e as { modbusCode?: unknown }).modbusCode === 'number';
 }
 
 export class HeruAPI {
@@ -103,30 +113,45 @@ export class HeruAPI {
 
     async writeModbus() {
         try {
-            // Remove each item only after it was written, so a retry doesn't repeat writes that already succeeded
-            while (this.writeQueue.coils.length) {
-                const coil = this.writeQueue.coils[0];
-                const result = await this.client.writeCoils(coil.startingAddress, coil.values);
-                if (result) this.device?.log('Successfully wrote to coils starting at ', coil.startingAddress, ' --> ', coil.values);
-                this.writeQueue.coils.shift();
-            }
-            while (this.writeQueue.holdingRegisters.length) {
-                const holdingRegister = this.writeQueue.holdingRegisters[0];
-                const result = await this.client.writeRegisters(holdingRegister.startingAddress, holdingRegister.values);
-                if (result) this.device?.log('Successfully wrote to registers starting at ', holdingRegister.startingAddress, ' --> ', holdingRegister.values);
-                this.writeQueue.holdingRegisters.shift();
-            }
+            await this.processWriteQueue(this.writeQueue.coils, 'coils', (coil) => this.client.writeCoils(coil.startingAddress, coil.values));
+            await this.processWriteQueue(this.writeQueue.holdingRegisters, 'registers', (register) => this.client.writeRegisters(register.startingAddress, register.values));
             this.consecutiveFailedWrite = 0;
         } catch (e) {
+            // Only connection problems end up here, so retry the remaining writes on the next poll
             this.consecutiveFailedWrite++;
             this.device?.error(`Failed to write to client (attempt ${this.consecutiveFailedWrite}/${this.MAX_WRITE_ATTEMPTS})`, e);
             if (this.consecutiveFailedWrite >= this.MAX_WRITE_ATTEMPTS) {
                 this.device?.error('Giving up on pending writes, clearing write queue', this.writeQueue);
-                this.writeQueue.coils = [];
-                this.writeQueue.holdingRegisters = [];
-                this.consecutiveFailedWrite = 0;
+                this.rejectPendingWrites(`Could not write to the unit: ${e instanceof Error ? e.message : e}`);
             }
         }
+    }
+
+    async processWriteQueue<T extends WriteModbusCoils | WriteModbusRegisters>(queue: T[], type: string, write: (pendingWrite: T) => Promise<unknown>) {
+        // Remove each item only after it was handled, so a retry doesn't repeat writes that already succeeded
+        while (queue.length) {
+            const pendingWrite = queue[0];
+            try {
+                await write(pendingWrite);
+            } catch (e) {
+                if (!isModbusException(e)) throw e;
+                // The unit answered but refused this write, so retrying won't help. Fail only this write and carry on with the rest.
+                this.device?.error(`The unit rejected the write to ${type} starting at`, pendingWrite.startingAddress, '-->', pendingWrite.values, e.message);
+                queue.shift();
+                pendingWrite.reject(new Error(`The unit rejected the new value: ${e.message}`));
+                continue;
+            }
+            this.device?.log(`Successfully wrote to ${type} starting at `, pendingWrite.startingAddress, ' --> ', pendingWrite.values);
+            queue.shift();
+            pendingWrite.resolve();
+        }
+    }
+
+    rejectPendingWrites(message: string) {
+        // Empty the queues in place, as processWriteQueue may still hold a reference to them
+        const pendingWrites = [...this.writeQueue.coils.splice(0), ...this.writeQueue.holdingRegisters.splice(0)];
+        this.consecutiveFailedWrite = 0;
+        pendingWrites.forEach((pendingWrite) => pendingWrite.reject(new Error(message)));
     }
 
     hasPendingWriteRequests() {
@@ -163,6 +188,8 @@ export class HeruAPI {
                     } else this.device?.log('Ignored read');
                     this.ignoreNextRead = false;
                 }
+            } else if (this.hasPendingWriteRequests()) {
+                this.rejectPendingWrites('Not connected to the unit');
             }
         } catch (err) {
             this.device?.error('Polling failed', err);
@@ -216,23 +243,32 @@ export class HeruAPI {
         });
     }
 
-    writeRegister(startRegister: number, value: number) {
+    // The returned promise resolves once the value is written to the unit, and rejects if the write is dropped
+    writeRegister(startRegister: number, value: number): Promise<void> {
+        if (!this.isConnected) return Promise.reject(new Error('Not connected to the unit'));
         this.ignoreNextRead = true;
         this.device?.log('Adding registers starting at: ', startRegister, '-->', value, 'to write queue');
-        this.writeQueue['holdingRegisters'].push({ values: [value], startingAddress: startRegister });
+        return new Promise((resolve, reject) => {
+            this.writeQueue['holdingRegisters'].push({ values: [value], startingAddress: startRegister, resolve, reject });
+        });
     }
 
-    writeMultipleCoils(startCoil: number, values: boolean[]) {
+    // The returned promise resolves once the values are written to the unit, and rejects if the write is dropped
+    writeMultipleCoils(startCoil: number, values: boolean[]): Promise<void> {
+        if (!this.isConnected) return Promise.reject(new Error('Not connected to the unit'));
         this.ignoreNextRead = true;
         this.device?.log('Adding coils starting at: ', startCoil, '-->', values, 'to write queue');
-        this.writeQueue['coils'].push({ values, startingAddress: startCoil });
+        return new Promise((resolve, reject) => {
+            this.writeQueue['coils'].push({ values, startingAddress: startCoil, resolve, reject });
+        });
     }
 
-    writeCoil(coil: number, value: boolean) {
-        this.writeMultipleCoils(coil, [value]);
+    writeCoil(coil: number, value: boolean): Promise<void> {
+        return this.writeMultipleCoils(coil, [value]);
     }
 
     destroy() {
+        this.rejectPendingWrites('The device was removed');
         if (this.timer) {
             clearTimeout(this.timer);
             this.timer = null;

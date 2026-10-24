@@ -18,7 +18,7 @@ abstract class BaseDevice extends Homey.Device {
 
     async onInit() {
         this.registerCapabilityListener('fan_mode', async (value: FanMode) => {
-            this.setFanMode(value);
+            await this.setFanMode(value);
             this.triggerFanModeChanged(value);
         });
         this.addOrRemoveCapabilities().catch(this.error);
@@ -30,22 +30,22 @@ abstract class BaseDevice extends Homey.Device {
 
     abstract isRegulationMode(value: SetRegulationModeGen3 | SetRegulationModeIQC): boolean;
 
-    setFanMode(value: FanMode) {
+    async setFanMode(value: FanMode) {
         switch (value) {
             case FanMode.OFF:
-                this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [false, false, false, false]);
+                await this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [false, false, false, false]);
                 break;
             case FanMode.OVERPRESSURE:
-                this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [true, true, false, false]);
+                await this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [true, true, false, false]);
                 break;
             case FanMode.BOOST:
-                this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [true, false, true, false]);
+                await this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [true, false, true, false]);
                 break;
             case FanMode.NORMAL:
-                this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [true, false, false, false]);
+                await this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [true, false, false, false]);
                 break;
             case FanMode.AWAY:
-                this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [true, false, false, true]);
+                await this.api?.writeMultipleCoils(BaseRegisters.coils.UNIT_ON, [true, false, false, true]);
                 break;
         }
     }
@@ -60,7 +60,7 @@ abstract class BaseDevice extends Homey.Device {
     //     this.api?.writeCoil(BaseRegisters.coils.RESET_FILTER_TIMER, true);
     // }
 
-    abstract setRegulationMode(value: SetRegulationModeGen3 | SetRegulationModeIQC): void;
+    abstract setRegulationMode(value: SetRegulationModeGen3 | SetRegulationModeIQC): Promise<void>;
 
     abstract triggerRegulationModeChanged(value: SetRegulationModeGen3 | SetRegulationModeIQC): void;
 
