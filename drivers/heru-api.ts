@@ -20,6 +20,15 @@ function isModbusException(e: unknown): e is Error & { modbusCode: number } {
     return e instanceof Error && typeof (e as { modbusCode?: unknown }).modbusCode === 'number';
 }
 
+// modbus-serial has no request timeout of its own, so without this a lost response leaves the request waiting forever
+function withTimeout<T>(request: Promise<T>, ms: number, description: string): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${description} timed out after ${ms} ms`)), ms);
+    });
+    return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
+}
+
 export class HeruAPI {
     device?: BaseDevice;
     client: ModbusRTU;
@@ -28,6 +37,8 @@ export class HeruAPI {
     consecutiveFailedRead = 0;
     consecutiveFailedWrite = 0;
     MAX_WRITE_ATTEMPTS = 5;
+    // Per request, so a slow but working connection doesn't fail a whole poll
+    REQUEST_TIMEOUT = 3000;
     reconnectCounter = 0;
     POLLING_INTERVAL = 2000;
     timer: NodeJS.Timeout | null = null;
@@ -113,8 +124,10 @@ export class HeruAPI {
 
     async writeModbus() {
         try {
-            await this.processWriteQueue(this.writeQueue.coils, 'coils', (coil) => this.client.writeCoils(coil.startingAddress, coil.values));
-            await this.processWriteQueue(this.writeQueue.holdingRegisters, 'registers', (register) => this.client.writeRegisters(register.startingAddress, register.values));
+            await this.processWriteQueue(this.writeQueue.coils, 'coils', (coil) => withTimeout(this.client.writeCoils(coil.startingAddress, coil.values), this.REQUEST_TIMEOUT, 'Writing coils'));
+            await this.processWriteQueue(this.writeQueue.holdingRegisters, 'registers', (register) =>
+                withTimeout(this.client.writeRegisters(register.startingAddress, register.values), this.REQUEST_TIMEOUT, 'Writing registers')
+            );
             this.consecutiveFailedWrite = 0;
         } catch (e) {
             // Only connection problems end up here, so retry the remaining writes on the next poll
@@ -201,46 +214,19 @@ export class HeruAPI {
     }
 
     async readRegisters(client: InstanceType<typeof ModbusRTU>) {
-        return new Promise<{ coils: boolean[]; discreteInputs: boolean[]; inputRegisters: number[]; holdingRegisters: number[] }>(async (resolve, reject) => {
-            const result = {
-                coils: [],
-                discreteInputs: [],
-                inputRegisters: [],
-                holdingRegisters: []
-            } as { coils: boolean[]; discreteInputs: boolean[]; holdingRegisters: number[]; inputRegisters: number[] };
-            let coilStatus;
-            let inputRegisters;
-            let holdingRegisters;
-            let discreteInputs;
+        const { coils, discreteInputs, inputRegisters, holdingRegisters } = this.registers;
+        // One request at a time: the RTU-over-TCP connection can only match one response to one request
+        const coilStatus = await withTimeout(client.readCoils(coils.start, coils.count), this.REQUEST_TIMEOUT, 'Reading coils');
+        const discreteInputStatus = await withTimeout(client.readDiscreteInputs(discreteInputs.start, discreteInputs.count), this.REQUEST_TIMEOUT, 'Reading discrete inputs');
+        const inputRegisterValues = await withTimeout(client.readInputRegisters(inputRegisters.start, inputRegisters.count), this.REQUEST_TIMEOUT, 'Reading input registers');
+        const holdingRegisterValues = await withTimeout(client.readHoldingRegisters(holdingRegisters.start, holdingRegisters.count), this.REQUEST_TIMEOUT, 'Reading holding registers');
 
-            const timeout = setTimeout(() => {
-                reject('Modbus timeout');
-            }, Math.floor(this.POLLING_INTERVAL / 2));
-            try {
-                coilStatus = await client.readCoils(this.registers.coils.start, this.registers.coils.count);
-                discreteInputs = await client.readDiscreteInputs(this.registers.discreteInputs.start, this.registers.discreteInputs.count);
-                inputRegisters = await client.readInputRegisters(this.registers.inputRegisters.start, this.registers.inputRegisters.count);
-                holdingRegisters = await client.readHoldingRegisters(this.registers.holdingRegisters.start, this.registers.holdingRegisters.count);
-            } catch (err: any) {
-                clearTimeout(timeout);
-                reject(err?.message || 'Modbus timeout');
-            }
-
-            if (coilStatus) {
-                result.coils = coilStatus.data;
-            }
-            if (discreteInputs) {
-                result.discreteInputs = discreteInputs.data;
-            }
-            if (inputRegisters) {
-                result.inputRegisters = inputRegisters.data;
-            }
-            if (holdingRegisters) {
-                result.holdingRegisters = holdingRegisters.data;
-            }
-            clearTimeout(timeout);
-            resolve(result);
-        });
+        return {
+            coils: coilStatus.data,
+            discreteInputs: discreteInputStatus.data,
+            inputRegisters: inputRegisterValues.data,
+            holdingRegisters: holdingRegisterValues.data
+        };
     }
 
     // The returned promise resolves once the value is written to the unit, and rejects if the write is dropped
