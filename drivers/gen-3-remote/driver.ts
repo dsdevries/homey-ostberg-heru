@@ -24,7 +24,7 @@ class Gen3RemoteDriver extends Homey.Driver {
 
             weekdays[parseInt(week_day, 10)] = state === '1';
 
-            device.updateWeekProgramWeekdays(
+            return device.updateWeekProgramWeekdays(
                 program,
                 convertArrayOfBooleansToNumber(weekdays)
             )
