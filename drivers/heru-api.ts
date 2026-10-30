@@ -9,6 +9,8 @@ interface PendingWrite {
 
 interface WriteModbusCoils extends PendingWrite {
     values: boolean[];
+    // Written with function code 5 (write single coil) instead of 15 (write multiple coils)
+    single: boolean;
 }
 
 interface WriteModbusRegisters extends PendingWrite {
@@ -130,7 +132,12 @@ export class HeruAPI {
 
     async writeModbus() {
         try {
-            await this.processWriteQueue(this.writeQueue.coils, 'coils', (coil) => withTimeout(this.client.writeCoils(coil.startingAddress, coil.values), this.REQUEST_TIMEOUT, 'Writing coils'));
+            await this.processWriteQueue(this.writeQueue.coils, 'coils', (coil) =>
+                withTimeout<unknown>(
+                    coil.single ? this.client.writeCoil(coil.startingAddress, coil.values[0]) : this.client.writeCoils(coil.startingAddress, coil.values),
+                    this.REQUEST_TIMEOUT,
+                    'Writing coils'
+                ));
             await this.processWriteQueue(this.writeQueue.holdingRegisters, 'registers', (register) =>
                 withTimeout(this.client.writeRegisters(register.startingAddress, register.values), this.REQUEST_TIMEOUT, 'Writing registers')
             );
@@ -252,16 +259,21 @@ export class HeruAPI {
 
     // The returned promise resolves once the values are written to the unit, and rejects if the write is dropped
     writeMultipleCoils(startCoil: number, values: boolean[]): Promise<void> {
+        return this.queueCoilWrite(startCoil, values, false);
+    }
+
+    // Some coils, like the ones that trigger an action, are only accepted as a single coil write
+    writeCoil(coil: number, value: boolean): Promise<void> {
+        return this.queueCoilWrite(coil, [value], true);
+    }
+
+    queueCoilWrite(startCoil: number, values: boolean[], single: boolean): Promise<void> {
         if (!this.isConnected) return Promise.reject(new Error('Not connected to the unit'));
         this.ignoreNextRead = true;
         this.device?.log('Adding coils starting at: ', startCoil, '-->', values, 'to write queue');
         return new Promise((resolve, reject) => {
-            this.writeQueue['coils'].push({ values, startingAddress: startCoil, resolve, reject });
+            this.writeQueue['coils'].push({ values, startingAddress: startCoil, single, resolve, reject });
         });
-    }
-
-    writeCoil(coil: number, value: boolean): Promise<void> {
-        return this.writeMultipleCoils(coil, [value]);
     }
 
     destroy() {

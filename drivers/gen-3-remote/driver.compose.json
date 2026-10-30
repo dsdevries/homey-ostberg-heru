@@ -36,6 +36,8 @@
         "meter_pressure_extract",
         "alarm_active_alarms",
         "meter_filter_timer",
+        "button.reset_filter_timer",
+        "button.clear_alarms",
         "week_timer_enabled_gen3",
         "week_timer_current_active_program_gen3",
         "summer_night_cooling_enabled",
@@ -43,6 +45,24 @@
         "measure_power"
     ],
     "capabilitiesOptions": {
+        "button.reset_filter_timer": {
+            "maintenanceAction": true,
+            "title": {
+                "en": "Reset filter timer"
+            },
+            "desc": {
+                "en": "Starts a new filter period. Do this after replacing the filters, then use Clear alarms to dismiss the filter alarm."
+            }
+        },
+        "button.clear_alarms": {
+            "maintenanceAction": true,
+            "title": {
+                "en": "Clear alarms"
+            },
+            "desc": {
+                "en": "Dismisses the active alarms on the unit. An alarm whose cause is still present comes back."
+            }
+        },
         "target_temperature": {
             "title": {
                 "en": "Target temperature"

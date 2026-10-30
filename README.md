@@ -45,7 +45,7 @@ Since Östberg has changed naming convention between the Gen 3 and the IQC for E
 -   Waste: From the unit and out of the house
 -   Outdoor: From the outside and in to the unit
 
-**Clear alarms** and **Reset filter timer** did not work for me, so the flows for this are left out of the application as of now. If you own a system with the IQC Touch panel and want to test if this could work on your system, please contact me.
+**Reset filter timer** and **Clear alarms** are available for Gen 3 under *Device settings → Maintenance actions*. They are written as a single coil write (Modbus function 5), as an earlier attempt with function 15 did not work. Resetting the filter timer does not dismiss the filter alarm, use **Clear alarms** for that.
 
 Alarms used to be read from the wrong Modbus addresses, which caused false **Supply fan** and **Extract fan** alarms during normal operation (they were actually the *Heating* and *Heat recovery* status). This is fixed, so after updating the alarms reflect the real state of the unit.
 
@@ -67,6 +67,7 @@ The week timer runs on the unit's own clock. Enable **Keep the unit's clock in s
 - Gen 3: Heat recovery power and relative humidity
 - Gen 3: Keep the unit's clock in sync with Homey, and a flow card to set it
 - Gen 3: Flow cards for the week timer being enabled, the active program and the current fan speed
+- Gen 3: Reset the filter timer and clear alarms from the device's maintenance actions
 
 ### Bug fix
 - Alarms and status flags were read from the wrong Modbus addresses

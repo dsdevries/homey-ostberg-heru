@@ -48,6 +48,12 @@ export class Gen3Remote extends BaseDevice {
         this.registerCapabilityListener('summer_night_cooling_enabled', async (value) => {
             await this.setSummerNightCoolingEnabled(value);
         });
+        this.registerCapabilityListener('button.reset_filter_timer', async () => {
+            await this.resetFilterTimer();
+        });
+        this.registerCapabilityListener('button.clear_alarms', async () => {
+            await this.clearAlarms();
+        });
     }
 
     async upgradeExistingDevice() {
@@ -59,6 +65,8 @@ export class Gen3Remote extends BaseDevice {
         if (!this.hasCapability('current_fan_speed_gen3')) await this.addCapability('current_fan_speed_gen3');
         if (!this.hasCapability('heating_active_gen3')) await this.addCapability('heating_active_gen3');
         if (!this.hasCapability('heat_recovery_active_gen3')) await this.addCapability('heat_recovery_active_gen3');
+        if (!this.hasCapability('button.reset_filter_timer')) await this.addCapability('button.reset_filter_timer');
+        if (!this.hasCapability('button.clear_alarms')) await this.addCapability('button.clear_alarms');
     }
 
     isFunctionActive(fn: Gen3Function) {

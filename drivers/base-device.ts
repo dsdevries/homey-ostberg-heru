@@ -79,10 +79,17 @@ abstract class BaseDevice extends Homey.Device {
     //     this.api?.writeCoil(BaseRegisters.coils.CLEAR_ALARMS, true);
     // }
 
-    // TODO: This seems to not work on my Gen 3 system. Investigate later. Removed .homeycompose flow actions
-    // async resetFilterTimer() {
-    //     this.api?.writeCoil(BaseRegisters.coils.RESET_FILTER_TIMER, true);
-    // }
+    // Writing 1 to this coil clears the alarms on the unit, it always reads back as 0. Alarms whose cause is still present come back.
+    async clearAlarms() {
+        await this.api?.writeCoil(BaseRegisters.coils.CLEAR_ALARMS, true);
+        this.log('Alarms cleared');
+    }
+
+    // Writing 1 to this coil resets the filter timer, it always reads back as 0
+    async resetFilterTimer() {
+        await this.api?.writeCoil(BaseRegisters.coils.RESET_FILTER_TIMER, true);
+        this.log('Filter timer reset');
+    }
 
     abstract setRegulationMode(value: SetRegulationModeGen3 | SetRegulationModeIQC): Promise<void>;
 
