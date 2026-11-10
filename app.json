@@ -23,8 +23,15 @@
     "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
-    "name": "Kjetil Haugland",
-    "email": "hauglandkjetil@gmail.com"
+    "name": "Daan de Vries"
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Kjetil Haugland",
+        "email": "hauglandkjetil@gmail.com"
+      }
+    ]
   },
   "brandColor": "#d23438",
   "tags": {
@@ -37,16 +44,9 @@
       "hvac"
     ]
   },
-  "source": "https://github.com/kjeet90/homey-ostberg-heru",
+  "source": "https://github.com/dsdevries/homey-ostberg-heru",
   "bugs": {
-    "url": "https://github.com/kjeet90/homey-ostberg-heru/issues"
-  },
-  "contributing": {
-    "donate": {
-      "paypal": {
-        "username": "kjetilhaugland"
-      }
-    }
+    "url": "https://github.com/dsdevries/homey-ostberg-heru/issues"
   },
   "homeyCommunityTopicId": 77169,
   "flow": {
