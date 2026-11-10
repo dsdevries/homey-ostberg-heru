@@ -1,4 +1,7 @@
 {
+    "1.8.0": {
+        "en": "Fixed the device sometimes stopping to update until the app was restarted. Alarms are now read correctly. Gen 3: current fan speed, heating, heat recovery and boost status, humidity, clock sync with Homey, new flow cards, and maintenance actions to reset the filter timer and clear alarms."
+    },
     "1.7.0": {
         "en": "Added Summer Night Cooling enable/disable"
     },

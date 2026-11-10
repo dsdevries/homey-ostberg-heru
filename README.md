@@ -59,7 +59,7 @@ The week timer runs on the unit's own clock. Enable **Keep the unit's clock in s
 
 # Changelog
 
-## Unreleased
+## 1.8.0
 
 ### Feature
 - Gen 3: Current fan speed, set by the user or the week timer
@@ -68,8 +68,11 @@ The week timer runs on the unit's own clock. Enable **Keep the unit's clock in s
 - Gen 3: Keep the unit's clock in sync with Homey, and a flow card to set it
 - Gen 3: Flow cards for the week timer being enabled, the active program and the current fan speed
 - Gen 3: Reset the filter timer and clear alarms from the device's maintenance actions
+- Show an error when a command can't be written to the unit, instead of silently ignoring it
 
 ### Bug fix
+- The device could stop updating until the app was restarted
+- The device could become unavailable for a few seconds on a slow connection
 - Alarms and status flags were read from the wrong Modbus addresses
 - Gen 3: The active week timer program was only updated when the CO₂ capability was enabled
 
